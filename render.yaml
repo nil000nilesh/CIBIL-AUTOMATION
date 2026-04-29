@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────
+#  Render.com Deployment Config
+#  Docs: https://render.com/docs/render-yaml-reference
+# ─────────────────────────────────────────────────────────
+
+services:
+  - type: web
+    name: cibil-automation-server
+    runtime: docker
+    plan: starter          # starter = paid plan with enough RAM for Chrome
+                           # free plan may not have enough RAM for Selenium
+    healthCheckPath: /ping
+
+    envVars:
+      # ── Required ─────────────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false        # set manually in Render dashboard (never commit to Git)
+
+      # ── Chrome / Selenium ────────────────────────────────
+      - key: HEADLESS
+        value: "true"
+      - key: CHROMIUM_PATH
+        value: "/usr/bin/chromium"
+      - key: CHROMEDRIVER_PATH
+        value: "/usr/bin/chromedriver"
+      - key: DOWNLOAD_DIR
+        value: "/tmp/cibil_reports"
+
+      # ── Flask ────────────────────────────────────────────
+      - key: PORT
+        value: "10000"     # Render assigns port 10000 for web services

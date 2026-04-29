@@ -1,0 +1,596 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIBIL Data Entry – App 1</title>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/app1.css">
+</head>
+<body>
+
+<div class="login-gate-overlay" id="loginGate" style="display:none">
+  <div class="login-gate-box">
+    <h2>CIBIL Portal Login</h2>
+    <p>App 2 mein login karein, phir yahan continue karein.</p>
+    <div class="gate-steps">
+      <div class="gate-step" id="gs1"><span class="gs-icon">&#128421;</span><span class="gs-label">Flask Server</span><span class="gs-msg" id="gs1msg">Checking...</span></div>
+      <div class="gate-step" id="gs2"><span class="gs-icon">&#128274;</span><span class="gs-label">CIBIL Login</span><span class="gs-msg" id="gs2msg">Waiting...</span></div>
+      <div class="gate-step" id="gs3"><span class="gs-icon">&#128241;</span><span class="gs-label">OTP</span><span class="gs-msg" id="gs3msg">Waiting...</span></div>
+      <div class="gate-step" id="gs4"><span class="gs-icon">&#10003;</span><span class="gs-label">Ready</span><span class="gs-msg" id="gs4msg">Waiting...</span></div>
+    </div>
+    <p class="gate-hint" id="gateHint">Chrome window mein OTP enter karein.</p>
+    <div class="gate-btns">
+      <button class="btn-gate-skip" onclick="skipLoginGate()">Skip / Offline Mode</button>
+      <button class="btn-gate-manual" onclick="skipLoginGate()" id="gateManualBtn" style="display:none">Continue to Form</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo-box">
+      <span class="logo-text">TransUnion</span>
+      <span class="logo-sub">CIBIL</span>
+    </div>
+    <div>
+      <div class="brand-title">Credit Information Report Portal</div>
+      <div class="brand-sub">Secure Data Entry &amp; Management System — App 1</div>
+    </div>
+  </div>
+  <div id="srvBadge" class="srv-badge srv-chk"><div class="dot"></div> Checking...</div>
+</div>
+
+<div class="navbar">
+  <div class="nav-left">
+    <button class="active" id="navForm" onclick="showTab('form')">New Application</button>
+    <button id="navQueue" onclick="showTab('queue');scrollToQueue()">Queue (<span id="qCount">0</span>)</button>
+    <button id="navSettings" onclick="showTab('settings')">&#9881; Settings</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ── VALIDATION SUMMARY BAR ── -->
+  <div class="val-bar" id="valBar">
+    <div class="val-progress-wrap">
+      <div class="val-progress" id="valProgress" style="width:0%"></div>
+    </div>
+    <span class="val-count err" id="valCount">0 / 13 mandatory fields filled</span>
+    <button class="toggle-err-btn" id="toggleErrBtn" onclick="toggleErrList()" style="display:none">▼ Show errors</button>
+    <div class="val-errors-list" id="valErrList"></div>
+  </div>
+
+  <p style="font-size:11px;color:#555;margin-bottom:6px">
+    <span style="color:#c0392b">*</span> = Mandatory &nbsp;|&nbsp;
+    <span style="color:#1D9E75">●</span> = Valid &nbsp;|&nbsp;
+    <span style="color:#c0392b">●</span> = Error &nbsp;|&nbsp;
+    <span style="background:#d4efdf;color:#1a6b3a;padding:1px 5px;border-radius:3px;font-size:10px">AI</span> = Auto-filled by AI
+  </p>
+
+  <!-- ══════════════════════════════════════════
+       AI DOCUMENT UPLOAD PANEL
+  ════════════════════════════════════════════ -->
+  <div class="ai-panel">
+    <div class="ai-panel-title" style="justify-content:space-between">
+      <span>&#9889; AI Auto-Fill &mdash; Multiple Documents Upload
+        <span style="font-size:10px;font-weight:400;color:#666">(Python server must be running)</span>
+      </span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="merge-trigger-btn" id="aiMergeBtn" onclick="openMergePanel()" style="display:none"
+          title="Multiple documents se best data ek jagah compare karke form fill karo">
+          &#128256; Smart Merge
+          <span id="aiMergeBadge" style="background:rgba(255,255,255,.25);border-radius:8px;padding:1px 6px;font-size:10px"></span>
+        </button>
+        <button class="ai-clear-btn" onclick="clearAIFiles()" id="aiClearBtn" style="display:none">&#10005; Clear All</button>
+      </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <label class="ai-drop-zone" id="aiDropZone" for="aiFileInput">
+      <div style="font-size:32px;margin-bottom:4px">&#128196;</div>
+      <h4>Koi bhi document yahan drop karein ya click karein</h4>
+      <p>Aadhaar, PAN, Passport, Voter ID, Driving Licence &mdash; koi bhi identity / address proof</p>
+      <p style="margin-top:4px;font-size:11px;color:#888">JPG / PNG / WebP / <strong>PDF</strong> &nbsp;|&nbsp; AI document padh kar data dikhayega &mdash; aap verify karke form fill kar sakte hain</p>
+      <input type="file" id="aiFileInput" multiple accept=".jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.pdf" style="display:none">
+    </label>
+
+    <!-- File list -->
+    <div class="ai-file-list" id="aiFileList"></div>
+
+    <!-- Smart Merge Panel (rendered dynamically by JS) -->
+    <div id="aiMergePanel" class="ai-merge-panel"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 1 – INDIVIDUAL DETAILS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('s1')">
+      Individual Details
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sec-err-badge" id="s1badge"></span>
+        <span class="sec-icon" id="s1icon">–</span>
+      </div>
+    </div>
+    <div class="section-body" id="s1">
+
+      <div class="row col-3">
+        <div class="field" id="f_request_type">
+          <label>Request Type <span class="req">*</span><span class="valid-ico" id="vi_request_type"></span></label>
+          <select id="request_type" onchange="validate('request_type')">
+            <option value="Individual">Individual</option>
+            <option value="Entity">Entity</option>
+          </select>
+          <span class="field-err" id="e_request_type"></span>
+        </div>
+      </div>
+
+      <div class="row col-3">
+        <div class="field" id="f_first_name">
+          <label>First Name <span class="req">*</span><span class="valid-ico" id="vi_first_name"></span></label>
+          <input type="text" id="first_name" placeholder="First Name" maxlength="50"
+            oninput="liveValidate('first_name')" onblur="validate('first_name')">
+          <span class="field-err" id="e_first_name"></span>
+        </div>
+        <div class="field" id="f_middle_name">
+          <label>Middle Name <span class="opt-tag">Optional</span><span class="valid-ico" id="vi_middle_name"></span></label>
+          <input type="text" id="middle_name" placeholder="Middle Name" maxlength="50"
+            oninput="liveValidate('middle_name')" onblur="validate('middle_name')">
+          <span class="field-err" id="e_middle_name"></span>
+        </div>
+        <div class="field" id="f_last_name">
+          <label>Last Name <span class="opt-tag">Optional</span><span class="valid-ico" id="vi_last_name"></span></label>
+          <input type="text" id="last_name" placeholder="Last Name" maxlength="50"
+            oninput="liveValidate('last_name')" onblur="validate('last_name')">
+          <span class="field-err" id="e_last_name"></span>
+        </div>
+      </div>
+
+      <div class="row col-3">
+        <div class="field" id="f_dob">
+          <label>Date Of Birth <span class="req">*</span><span class="valid-ico" id="vi_dob"></span></label>
+          <div class="dob-wrap">
+            <input type="date" id="dob_cal" max="" onchange="syncDOB()" style="flex:1">
+            <span class="dob-fmt" id="dob_display"></span>
+          </div>
+          <input type="hidden" id="dob">
+          <span class="field-err" id="e_dob"></span>
+        </div>
+        <div class="field" id="f_gender">
+          <label>Gender <span class="req">*</span><span class="valid-ico" id="vi_gender"></span></label>
+          <select id="gender" onchange="validate('gender')">
+            <option value="">--Select--</option>
+            <option>Male</option><option>Female</option><option>Transgender</option>
+          </select>
+          <span class="field-err" id="e_gender"></span>
+        </div>
+        <div class="field" id="f_email">
+          <label>Email ID <span class="opt-tag">Optional</span><span class="valid-ico" id="vi_email"></span></label>
+          <input type="email" id="email" placeholder="email@example.com" maxlength="100"
+            oninput="liveValidate('email')" onblur="validate('email')">
+          <span class="field-err" id="e_email"></span>
+        </div>
+      </div>
+
+      <div class="row col-1">
+        <div class="field" id="f_address_type">
+          <label>Address Type <span class="req">*</span><span class="valid-ico" id="vi_address_type"></span></label>
+          <select id="address_type" style="max-width:280px" onchange="validate('address_type')">
+            <option value="">--Select--</option>
+            <option value="01">Permanent Address</option>
+            <option value="02">Residence Address</option>
+            <option value="03">Office Address</option>
+            <option value="04">Not Categorized</option>
+            <option value="05">Temporary Address</option>
+          </select>
+          <span class="field-err" id="e_address_type"></span>
+        </div>
+      </div>
+
+      <div class="row col-3">
+        <div class="field" id="f_addr1">
+          <label>Address Line 1 <span class="req">*</span><span class="valid-ico" id="vi_addr1"></span></label>
+          <input type="text" id="addr1" placeholder="House/Flat No., Building, Street" maxlength="100"
+            oninput="liveValidate('addr1')" onblur="validate('addr1')">
+          <span class="field-err" id="e_addr1"></span>
+        </div>
+        <div class="field" id="f_addr2">
+          <label>Address Line 2 <span class="opt-tag">Optional</span><span class="valid-ico" id="vi_addr2"></span></label>
+          <input type="text" id="addr2" placeholder="Area / Locality" maxlength="100"
+            oninput="liveValidate('addr2')" onblur="validate('addr2')">
+          <span class="field-err" id="e_addr2"></span>
+        </div>
+        <div class="field" id="f_addr3">
+          <label>Address Line 3 <span class="opt-tag">Optional</span><span class="valid-ico" id="vi_addr3"></span></label>
+          <input type="text" id="addr3" placeholder="Landmark / Tehsil" maxlength="100"
+            oninput="liveValidate('addr3')" onblur="validate('addr3')">
+          <span class="field-err" id="e_addr3"></span>
+        </div>
+      </div>
+
+      <div class="row col-3">
+        <div class="field" id="f_state">
+          <label>State <span class="req">*</span><span class="valid-ico" id="vi_state"></span></label>
+          <select id="state" onchange="validate('state')">
+            <option value="">---Select---</option>
+            <option value="35">Andaman and Nicobar Islands</option><option value="28">Andhra Pradesh</option>
+            <option value="12">Arunachal Pradesh</option><option value="18">Assam</option>
+            <option value="10">Bihar</option><option value="22">Chandigarh</option>
+            <option value="04">Chhattisgarh</option><option value="26">Dadra and Nagar Haveli</option>
+            <option value="25">Daman and Diu</option><option value="30">Goa</option>
+            <option value="24">Gujarat</option><option value="06">Haryana</option>
+            <option value="02">Himachal Pradesh</option><option value="01">Jammu and Kashmir</option>
+            <option value="20">Jharkhand</option><option value="29">Karnataka</option>
+            <option value="32">Kerala</option><option value="31">Lakshadweep</option>
+            <option value="23">Madhya Pradesh</option><option value="27">Maharashtra</option>
+            <option value="14">Manipur</option><option value="17">Meghalaya</option>
+            <option value="15">Mizoram</option><option value="13">Nagaland</option>
+            <option value="07">New Delhi</option><option value="21">Orissa</option>
+            <option value="34">Puducherry</option><option value="03">Punjab</option>
+            <option value="08">Rajasthan</option><option value="11">Sikkim</option>
+            <option value="33">Tamil Nadu</option><option value="36">Telangana</option>
+            <option value="16">Tripura</option><option value="09">Uttar Pradesh</option>
+            <option value="05">Uttarakhand</option><option value="19">West Bengal</option>
+            <option value="38">Ladakh</option><option value="99">APO Address</option>
+          </select>
+          <span class="field-err" id="e_state"></span>
+        </div>
+        <div class="field" id="f_city">
+          <label>City <span class="req">*</span><span class="valid-ico" id="vi_city"></span></label>
+          <input type="text" id="city" placeholder="City / District" maxlength="50"
+            oninput="liveValidate('city')" onblur="validate('city')">
+          <span class="field-err" id="e_city"></span>
+        </div>
+        <div class="field" id="f_pincode">
+          <label>Pincode <span class="req">*</span><span class="valid-ico" id="vi_pincode"></span></label>
+          <input type="text" id="pincode" placeholder="6-digit Pincode" maxlength="6"
+            oninput="this.value=this.value.replace(/\D/g,'');liveValidate('pincode')" onblur="validate('pincode')">
+          <span class="field-err" id="e_pincode"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 2 – CONTACT DETAILS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('s2')">
+      Contact Details <span style="font-size:10px;font-weight:400;opacity:.8">(at least 1 contact recommended)</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sec-err-badge" id="s2badge"></span>
+        <span class="sec-icon" id="s2icon">–</span>
+      </div>
+    </div>
+    <div class="section-body" id="s2">
+      <div id="contactsContainer">
+        <div class="contact-row" data-idx="0">
+          <div class="field" id="f_ctype_0">
+            <label>Contact Type</label>
+            <select class="ctype" onchange="validateContact(0)">
+              <option value="">--Select--</option>
+              <option>Mobile Phone</option><option>Home Phone</option><option>Office Phone</option>
+            </select>
+            <span class="field-err" id="e_ctype_0"></span>
+          </div>
+          <div class="field" id="f_cnum_0">
+            <label>Contact Number</label>
+            <input type="text" class="cnum" placeholder="10-digit Number" maxlength="15"
+              oninput="this.value=this.value.replace(/\D/g,'');validateContact(0)" onblur="validateContact(0)">
+            <span class="field-err" id="e_cnum_0"></span>
+          </div>
+          <div></div>
+        </div>
+      </div>
+      <button class="btn btn-yellow small-btn" onclick="addContact()" style="margin-top:4px">+ Add Contact</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 3 – IDENTIFIERS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('s3')">
+      Identifiers
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sec-err-badge" id="s3badge"></span>
+        <span class="sec-icon" id="s3icon">–</span>
+      </div>
+    </div>
+    <div class="section-body" id="s3">
+
+      <!-- Identifier requirement note -->
+      <div class="id-note" id="idNote">
+        ⚠ At least ONE identifier is mandatory (PAN / Aadhaar / Voter ID / Passport / DL / Ration Card)
+      </div>
+
+      <div class="id-grid">
+        <div class="field" id="f_pan">
+          <label>PAN <span class="req">*¹</span><span class="valid-ico" id="vi_pan"></span></label>
+          <input type="text" id="pan" placeholder="ABCDE1234F" maxlength="10"
+            style="text-transform:uppercase"
+            oninput="this.value=this.value.toUpperCase();liveValidate('pan')" onblur="validate('pan')">
+          <span class="field-err" id="e_pan"></span>
+        </div>
+        <div class="field" id="f_aadhaar">
+          <label>Aadhaar Number (UID) <span class="req">*¹</span><span class="valid-ico" id="vi_aadhaar"></span></label>
+          <input type="text" id="aadhaar" placeholder="12-digit Aadhaar" maxlength="12"
+            oninput="this.value=this.value.replace(/\D/g,'');liveValidate('aadhaar')" onblur="validate('aadhaar')">
+          <span class="field-err" id="e_aadhaar"></span>
+        </div>
+        <div class="field" id="f_voter_id">
+          <label>Voter ID <span class="req">*¹</span><span class="valid-ico" id="vi_voter_id"></span></label>
+          <input type="text" id="voter_id" placeholder="Voter ID" maxlength="20"
+            oninput="liveValidate('voter_id')" onblur="validate('voter_id')">
+          <span class="field-err" id="e_voter_id"></span>
+        </div>
+        <div class="field" id="f_passport">
+          <label>Passport <span class="req">*¹</span><span class="valid-ico" id="vi_passport"></span></label>
+          <input type="text" id="passport" placeholder="Passport Number" maxlength="15"
+            style="text-transform:uppercase"
+            oninput="this.value=this.value.toUpperCase();liveValidate('passport')" onblur="validate('passport')">
+          <span class="field-err" id="e_passport"></span>
+        </div>
+        <div class="field" id="f_dl_number">
+          <label>Drivers License <span class="req">*¹</span><span class="valid-ico" id="vi_dl_number"></span></label>
+          <input type="text" id="dl_number" placeholder="DL Number" maxlength="20"
+            style="text-transform:uppercase"
+            oninput="this.value=this.value.toUpperCase();liveValidate('dl_number')" onblur="validate('dl_number')">
+          <span class="field-err" id="e_dl_number"></span>
+        </div>
+        <div class="field" id="f_ration_card">
+          <label>Ration Card <span class="req">*¹</span><span class="valid-ico" id="vi_ration_card"></span></label>
+          <input type="text" id="ration_card" placeholder="Ration Card No." maxlength="20"
+            oninput="liveValidate('ration_card')" onblur="validate('ration_card')">
+          <span class="field-err" id="e_ration_card"></span>
+        </div>
+      </div>
+      <p style="font-size:10px;color:#888;margin-top:5px">*¹ At least one identifier is mandatory. Format: PAN = ABCDE1234F | Aadhaar = 12 digits</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SECTION 4 – ENQUIRY DETAILS
+  ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle('s4')">
+      Enquiry Details
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sec-err-badge" id="s4badge"></span>
+        <span class="sec-icon" id="s4icon">–</span>
+      </div>
+    </div>
+    <div class="section-body" id="s4">
+
+      <div class="row col-2">
+        <div class="field">
+          <label>Include Grameen Score</label>
+          <div style="margin-top:4px"><input type="checkbox" id="grameen_score" style="width:auto;transform:scale(1.3)"></div>
+        </div>
+        <div class="field" id="f_consumer_score">
+          <label>Include Consumer Score(s) <span class="req">*</span><span class="valid-ico" id="vi_consumer_score"></span></label>
+          <select id="consumer_score" onchange="validate('consumer_score')">
+            <option value="">--Select--</option>
+            <option value="28">Enhanced CreditVision Score with this report</option>
+            <option value="30" selected>Enhanced CreditVision Score + New to Credit Score</option>
+            <option value="29">Enhanced CreditVision Score + Personal Loan Score</option>
+            <option value="31">Enhanced CreditVision + Personal Loan + New to Credit</option>
+            <option value="00">Do not include any score</option>
+          </select>
+          <span class="field-err" id="e_consumer_score"></span>
+        </div>
+      </div>
+
+      <div class="row col-2">
+        <div class="field" id="f_enq_category">
+          <label>Enquiry Purpose Category <span class="req">*</span><span class="valid-ico" id="vi_enq_category"></span></label>
+          <select id="enq_category" onchange="updatePurpose();validate('enq_category')">
+            <option value="">---Select---</option>
+            <option value="1,1">Agriculture &amp; PSL Loans</option>
+            <option value="2,1">Auto or Two/Three Wheeler Loans</option>
+            <option value="3,1">Business or Commercial Loans</option>
+            <option value="4,0">Dispute Redressal</option>
+            <option value="5,0">Housing or Property Loans</option>
+            <option value="6,1">Loans Against Collateral</option>
+            <option value="8,0">Others</option>
+            <option value="9,0">Personal or Consumer Loans</option>
+          </select>
+          <span class="field-err" id="e_enq_category"></span>
+        </div>
+        <div class="field" id="f_enq_purpose">
+          <label>Enquiry Purpose <span class="req">*</span><span class="valid-ico" id="vi_enq_purpose"></span></label>
+          <select id="enq_purpose" onchange="validate('enq_purpose')">
+            <option value="">--Select--</option>
+          </select>
+          <span class="field-err" id="e_enq_purpose"></span>
+        </div>
+      </div>
+
+      <div class="row col-2">
+        <div class="field" id="f_enq_amount">
+          <label>Enquiry Amount (₹) <span class="req">*</span><span class="valid-ico" id="vi_enq_amount"></span></label>
+          <input type="number" id="enq_amount" placeholder="Loan Amount in INR" min="1" max="9999999999"
+            oninput="liveValidate('enq_amount')" onblur="validate('enq_amount')">
+          <span class="field-err" id="e_enq_amount"></span>
+        </div>
+        <div class="field" id="f_mrn">
+          <label>Member Reference Number <span class="req">*</span><span class="valid-ico" id="vi_mrn"></span></label>
+          <input type="text" id="mrn" placeholder="Unique Ref. No." maxlength="50"
+            oninput="liveValidate('mrn')" onblur="validate('mrn')">
+          <span class="field-err" id="e_mrn"></span>
+        </div>
+      </div>
+
+      <div class="row col-3">
+        <div class="field" id="f_gst_state">
+          <label>GST State <span class="valid-ico" id="vi_gst_state"></span></label>
+          <select id="gst_state">
+            <option value="35" selected>Andaman and Nicobar Islands</option>
+            <option value="28">Andhra Pradesh</option><option value="12">Arunachal Pradesh</option>
+            <option value="18">Assam</option><option value="10">Bihar</option>
+            <option value="22">Chandigarh</option><option value="04">Chhattisgarh</option>
+            <option value="26">Dadra and Nagar Haveli</option><option value="25">Daman and Diu</option>
+            <option value="30">Goa</option><option value="24">Gujarat</option>
+            <option value="06">Haryana</option><option value="02">Himachal Pradesh</option>
+            <option value="01">Jammu and Kashmir</option><option value="20">Jharkhand</option>
+            <option value="29">Karnataka</option><option value="32">Kerala</option>
+            <option value="31">Lakshadweep</option><option value="23">Madhya Pradesh</option>
+            <option value="27">Maharashtra</option><option value="14">Manipur</option>
+            <option value="17">Meghalaya</option><option value="15">Mizoram</option>
+            <option value="13">Nagaland</option><option value="07">New Delhi</option>
+            <option value="21">Orissa</option><option value="34">Puducherry</option>
+            <option value="03">Punjab</option><option value="08">Rajasthan</option>
+            <option value="11">Sikkim</option><option value="33">Tamil Nadu</option>
+            <option value="36">Telangana</option><option value="16">Tripura</option>
+            <option value="09">Uttar Pradesh</option><option value="05">Uttarakhand</option>
+            <option value="19">West Bengal</option><option value="38">Ladakh</option>
+            <option value="99">APO Address</option>
+          </select>
+        </div>
+        <div class="field" id="f_brn">
+          <label>Branch Reference Number <span class="opt-tag">Optional</span></label>
+          <input type="text" id="brn" placeholder="Branch Ref No." maxlength="50">
+        </div>
+        <div class="field" id="f_crn">
+          <label>Center Reference Number <span class="opt-tag">Optional</span></label>
+          <input type="text" id="crn" placeholder="Center Ref No." maxlength="50">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── ACTION BUTTONS ── -->
+  <div class="actions-bar">
+    <button class="btn btn-yellow" id="submitBtn" onclick="addToQueue()">
+      + Add to Queue &amp; Download
+      <span class="err-count-badge" id="errCountBadge">0</span>
+    </button>
+    <button class="btn btn-teal" onclick="validateAll(true)">✔ Check All Fields</button>
+    <button class="btn btn-teal" onclick="resetForm()">↺ Reset Form</button>
+  </div>
+  <div id="globalMsg"></div>
+
+  <!-- ── QUEUE TABLE ── -->
+  <div class="queue-section" id="queueSection">
+    <h3>Records Queue <span id="recordCount" style="font-weight:400;font-size:11px;color:#555">— 0 records</span></h3>
+    <div style="overflow-x:auto">
+      <table class="queue-table">
+        <thead><tr>
+          <th>#</th><th>Name</th><th>DOB</th><th>PAN</th><th>City</th>
+          <th>Category</th><th>Amount</th><th>MRN</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="queueBody"></tbody>
+      </table>
+    </div>
+    <p id="emptyQueue" style="text-align:center;padding:14px;color:#999;display:none">No records yet.</p>
+    <div class="actions-bar" style="margin-top:8px">
+      <button class="btn btn-red" onclick="clearQueue()" id="clrBtn" disabled>✕ Clear Queue</button>
+    </div>
+  </div>
+
+  <!-- ── DOWNLOAD BANNER ── -->
+  <div class="download-banner" id="downloadBanner">
+    <div class="dl-info">
+      <strong>&#11015; Text Files Download Karo</strong>
+      <span id="dlBannerCount">Queue mein 0 records hain</span>
+    </div>
+    <div class="dl-btns">
+      <button class="btn-download-all" id="dlAllBtn" onclick="downloadAll()" disabled>
+        &#128230; Bulk File Download (1 file, sab records)
+      </button>
+      <button class="btn-download-indiv" id="dlIndivBtn" onclick="downloadAllIndividual()" disabled>
+        &#128196; Individual Files (alag alag .txt)
+      </button>
+    </div>
+  </div>
+
+</div>
+<div class="footer">TransUnionCIBIL.com &nbsp;|&nbsp; Terms of Use</div>
+
+<script src="js/config.js"></script>
+<script src="js/app1.js"></script>
+
+<!-- ══════════════ SETTINGS PANEL ══════════════ -->
+<div id="settingsPanel" style="max-width:1220px;margin:0 auto;padding:10px 14px">
+
+  <div class="settings-card">
+    <h3>&#129302; OpenAI API Key (GPT-4o)</h3>
+    <p style="font-size:12px;color:#555;margin-bottom:12px">
+      AI is used to extract Aadhaar &amp; PAN data from uploaded images using <strong>OpenAI GPT-4o</strong>.
+      Enter your API key below — it is saved to the server and never leaves your local machine.
+    </p>
+
+    <!-- Saved key bar -->
+    <div id="savedKeyBar" style="display:none;align-items:center;gap:10px;background:#e8f7f0;border:1px solid #1D9E75;border-radius:5px;padding:8px 12px;font-size:12px;color:#1a6b3a;margin-bottom:12px">
+      <span id="savedKeyText"></span>
+      <span style="margin-left:auto;font-size:11px;color:#555">Naya key dalne ke liye neeche field mein type karein</span>
+    </div>
+
+    <div class="api-field">
+      <label>OpenAI API Key (sk-proj-...)</label>
+      <div class="api-input-row">
+        <input type="password" id="openaiKeyInput" placeholder="sk-proj-xxxxxxxxxxxxxxxx" autocomplete="off">
+        <button class="show-key-btn" onclick="toggleKeyVis('openaiKeyInput',this)">&#128065; Show</button>
+      </div>
+      <div class="api-hint">
+        Key kahan se milega: <a href="https://platform.openai.com/api-keys" target="_blank" style="color:#007B8A">platform.openai.com/api-keys</a>
+        &nbsp;|&nbsp; Model used: <strong>gpt-4o</strong>
+      </div>
+    </div>
+
+    <!-- Status row -->
+    <div id="apiStatusRow" class="api-status-row api-idle" style="display:none">
+      <span id="apiStatusText">–</span>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center">
+      <button class="save-api-btn" onclick="saveApiKey()">&#128190; Save API Key</button>
+      <button class="test-api-btn" onclick="testApiKey()">&#9654; Test Connection</button>
+      <span id="saveMsg" style="font-size:12px;color:#1D9E75;display:none">&#10003; Saved!</span>
+    </div>
+
+    <div style="background:#f0f4f5;border-radius:4px;padding:10px;margin-top:14px;font-size:11px;color:#555;line-height:1.7">
+      <strong>&#128190; Permanent Save:</strong> Key server ke <code>cibil_config.json</code> mein save hoti hai — server restart ke baad bhi yaad rahegi.
+      Key sirf aapke local server ko milti hai — internet par nahi jaati.
+    </div>
+  </div>
+
+  <!-- Server Status card -->
+  <div class="settings-card">
+    <h3>&#128301; Python Server Status &amp; URL</h3>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+      <div id="settSrvStatus" class="api-status-row api-idle" style="flex:1;min-width:200px">Checking...</div>
+      <button class="test-api-btn" onclick="checkServerSettings()">&#8635; Refresh</button>
+    </div>
+
+    <!-- Server URL setting -->
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px">
+        Server URL <span style="font-weight:400;color:#888">(default: http://localhost:5000)</span>
+      </label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="serverUrlSetting" placeholder="http://localhost:5000"
+               style="flex:1;min-width:200px;padding:7px 10px;border:1.5px solid #ccd6dd;border-radius:5px;font-size:12px;font-family:monospace">
+        <button class="save-api-btn" onclick="saveServerUrlSetting()">&#128190; Save URL</button>
+        <button class="test-api-btn" onclick="resetServerUrl()">&#8635; Reset</button>
+      </div>
+      <div style="margin-top:5px;font-size:11px;color:#555">
+        &#128161; URL yahan change karne ke baad page reload karo. GitHub Pages se use karte time bhi yahi URL kaam karega.
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:#555">
+      Server nahi chal raha? <code style="background:#eee;padding:1px 5px;border-radius:2px">python cibil_automation.py</code> chalayein ya <strong>CIBIL_LAUNCHER.bat</strong> use karein.<br>
+      <span style="color:#1D9E75;margin-top:3px;display:block">&#10003; Server offline ho to bhi App 1 browser mode mein kaam karta hai — OpenAI API key set karo</span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════ /SETTINGS PANEL ══════════════ -->
+
+</body>
+</html>

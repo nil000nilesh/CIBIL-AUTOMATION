@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIBIL Portal — Home</title>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo-box">
+      <span class="logo-text">TransUnion</span>
+      <span class="logo-sub">CIBIL</span>
+    </div>
+    <div>
+      <div class="brand-title">Credit Information Report Portal</div>
+      <div class="brand-sub">Automated Data Entry &amp; Report Generation System</div>
+    </div>
+  </div>
+  <div id="srvBadge" class="srv-badge srv-chk"><div class="dot"></div> Checking...</div>
+</div>
+
+<div class="home-content">
+
+  <!-- ── APP CARDS ── -->
+  <div class="app-cards">
+
+    <a class="app-card" href="App1_CIBIL_Entry_Form.html">
+      <div class="app-card-icon">&#128203;</div>
+      <div class="app-card-body">
+        <div class="app-card-title">App 1 &mdash; CIBIL Entry Form</div>
+        <div class="app-card-desc">
+          Customer ka data form fill karo. Aadhaar / PAN / PDF upload karo &mdash;
+          AI automatically data extract kar dega. JSON files download karo App 2 ke liye.
+        </div>
+        <div class="app-card-features">
+          <span class="feat-chip feat-online">&#10003; Works Online</span>
+          <span class="feat-chip feat-ai">&#9889; AI Auto-Fill</span>
+          <span class="feat-chip feat-docs">&#128196; PDF Support</span>
+        </div>
+      </div>
+      <div class="app-card-arrow">&#8250;</div>
+    </a>
+
+    <a class="app-card" href="App2_CIBIL_Auto_Filler.html">
+      <div class="app-card-icon">&#9881;</div>
+      <div class="app-card-body">
+        <div class="app-card-title">App 2 &mdash; CIBIL Auto Filler</div>
+        <div class="app-card-desc">
+          App 1 se download ki gayi .txt files load karo aur CIBIL portal pe
+          automatically forms fill karwa do. Reports download karo.
+        </div>
+        <div class="app-card-features">
+          <span class="feat-chip feat-warn">&#9888; Local Server Needed</span>
+          <span class="feat-chip feat-ai">&#129302; Selenium Automation</span>
+          <span class="feat-chip feat-docs">&#128196; Reports</span>
+        </div>
+      </div>
+      <div class="app-card-arrow">&#8250;</div>
+    </a>
+
+  </div>
+
+  <!-- ── SERVER STATUS ── -->
+  <div class="panel-card">
+    <div class="panel-title">&#128421; Local Python Server</div>
+
+    <div class="server-status-row">
+      <div id="srvDetailMsg" class="srv-detail-msg" style="color:#888">Checking local server...</div>
+      <button class="btn-sm btn-teal-sm" onclick="checkHomeServer()">&#8635; Refresh</button>
+    </div>
+
+    <div class="srv-url-row">
+      <label>Server URL:</label>
+      <input type="text" id="serverUrlInput" placeholder="http://localhost:5000">
+      <button class="btn-sm btn-green-sm" onclick="saveServerUrl()">&#128190; Save URL</button>
+    </div>
+    <p style="font-size:11px;color:#888;margin-top:8px">
+      &#128161; App 2 ke liye server zaroori hai. App 1 sirf images ke liye bina server ke bhi kaam karta hai (browser mode).
+    </p>
+  </div>
+
+  <!-- ── SETUP GUIDE ── -->
+  <div class="panel-card">
+    <div class="panel-title">&#128640; Quick Setup Guide</div>
+    <div class="setup-steps">
+
+      <div class="setup-step">
+        <span class="step-num">1</span>
+        <div class="step-body">
+          <strong>Python dependencies install karo (sirf ek baar)</strong><br>
+          <code>pip install flask flask-cors selenium webdriver-manager openai pymupdf</code>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <span class="step-num">2</span>
+        <div class="step-body">
+          <strong>Local server start karo</strong><br>
+          <code>python cibil_automation.py</code> &nbsp;ya&nbsp; <code>CIBIL_LAUNCHER.bat</code> double-click karo<br>
+          <span style="color:#888;font-size:11px">Server port: 5000 (upar URL change kar sakte ho)</span>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <span class="step-num">3</span>
+        <div class="step-body">
+          <strong>OpenAI API Key daalo — App 1 &rarr; Settings</strong><br>
+          Key aapke browser (localStorage) mein save hogi &mdash; kisi server pe nahi.<br>
+          <span style="color:#1D9E75;font-size:11px">
+            &#10003; Server online ho to AI wahan process hogi (PDF support + faster)<br>
+            &#10003; Server offline ho to browser directly OpenAI API call karega (images only)
+          </span>
+        </div>
+      </div>
+
+      <div class="setup-step">
+        <span class="step-num">4</span>
+        <div class="step-body">
+          <strong>App 2 mein CIBIL Login karo</strong><br>
+          Username + Password daalo &rarr; &ldquo;Remember&rdquo; checked rakho &rarr; Login karo.<br>
+          <span style="color:#1D9E75;font-size:11px">
+            &#128274; Credentials sirf aapke browser (localStorage) mein save hote hain &mdash; kisi remote server pe nahi
+          </span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SECURITY INFO ── -->
+  <div class="info-chips">
+    <div class="info-chip">
+      &#128274; <strong>CIBIL Credentials:</strong>&nbsp;
+      Sirf aapke browser ke localStorage mein saved &mdash; koi remote server nahi, koi cloud nahi
+    </div>
+    <div class="info-chip">
+      &#128273; <strong>OpenAI API Key:</strong>&nbsp;
+      Browser localStorage mein saved &mdash; direct mode mein browser se call hoti hai, kisi third party ko nahi jaati
+    </div>
+    <div class="info-chip">
+      &#9729; <strong>App 1 (Online Mode):</strong>&nbsp;
+      Form fill, download, aur AI extraction &mdash; sab kuch bina local server ke bhi kaam karta hai
+    </div>
+    <div class="info-chip">
+      &#128421; <strong>App 2 (Local Required):</strong>&nbsp;
+      Selenium automation ke liye local Python server zaroori hai &mdash; jo aapke hi PC pe run hota hai
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">TransUnionCIBIL.com &nbsp;|&nbsp; Terms of Use</div>
+
+<script src="js/config.js"></script>
+<script>
+// ── Init ────────────────────────────────────────────────────
+document.getElementById('serverUrlInput').value =
+  localStorage.getItem(LS.SERVER_URL) || 'http://localhost:5000';
+
+async function checkHomeServer() {
+  const badge  = document.getElementById('srvBadge');
+  const detail = document.getElementById('srvDetailMsg');
+  badge.className  = 'srv-badge srv-chk';
+  badge.innerHTML  = '<div class="dot"></div> Checking...';
+  detail.textContent = 'Checking...';
+  detail.style.color = '#888';
+  try {
+    const r = await fetch(SERVER + '/ping', { signal: AbortSignal.timeout(3000) });
+    const d = await r.json();
+    badge.className = 'srv-badge srv-ok';
+    badge.innerHTML = '<div class="dot"></div> Server Online';
+    detail.textContent = '✓ Server online — AI: ' + (d.ai_provider || 'N/A') +
+                         ' | Selenium: ' + (d.selenium ? 'OK' : 'Not installed');
+    detail.style.color = '#1a6b3a';
+  } catch {
+    badge.className = 'srv-badge srv-err';
+    badge.innerHTML = '<div class="dot"></div> Server Offline';
+    detail.textContent = '✗ Server offline — App 1 browser mode mein kaam karega. ' +
+                         'App 2 ke liye cibil_automation.py chalao.';
+    detail.style.color = '#c0392b';
+  }
+}
+
+function saveServerUrl() {
+  const val = document.getElementById('serverUrlInput').value.trim();
+  if (!val) return;
+  localStorage.setItem(LS.SERVER_URL, val);
+  const btn = event.target;
+  btn.textContent = '✓ Saved!';
+  setTimeout(() => btn.textContent = '💾 Save URL', 2000);
+}
+
+checkHomeServer();
+</script>
+</body>
+</html>

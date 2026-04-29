@@ -1,0 +1,330 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIBIL Auto Filler – App 2</title>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/app2.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo-box">
+      <span class="logo-text">TransUnion</span>
+      <span class="logo-sub">CIBIL</span>
+    </div>
+    <div>
+      <div class="brand-title">Credit Information Report Portal</div>
+      <div class="brand-sub">Automated Form Filling System — App 2</div>
+    </div>
+  </div>
+  <span class="app2-badge">&#9881; Automation Engine</span>
+</div>
+
+<div class="navbar">
+  <button class="active">Auto Filler</button>
+  <button onclick="checkServer()">Check Server</button>
+  <button onclick="toggleApp2Settings()">&#9881; Settings</button>
+  <a href="index.html" style="margin-left:auto;background:rgba(255,255,255,.12);color:#fff;
+     border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:5px 14px;
+     font-size:12px;font-weight:600;text-decoration:none;align-self:center">&#8962; Home</a>
+</div>
+
+<!-- App 2 Settings Panel -->
+<div id="app2SettingsPanel" style="display:none;background:#fff;border-bottom:2px solid #d5e8ed;
+     padding:14px 20px;box-shadow:0 2px 8px rgba(0,90,122,.08)">
+  <div style="max-width:700px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end">
+
+    <div style="flex:1;min-width:240px">
+      <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:4px">
+        &#128421; Local Python Server URL
+      </label>
+      <input type="text" id="app2ServerUrl" placeholder="http://localhost:5000"
+             style="width:100%;padding:7px 10px;border:1.5px solid #ccd6dd;border-radius:5px;
+                    font-size:12px;font-family:monospace;outline:none">
+    </div>
+
+    <div style="display:flex;gap:8px;padding-bottom:1px">
+      <button onclick="saveApp2ServerUrl()"
+              style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                     border-radius:5px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">
+        &#128190; Save &amp; Reload
+      </button>
+      <button onclick="resetApp2ServerUrl()"
+              style="background:linear-gradient(135deg,#888,#666);color:#fff;border:none;
+                     border-radius:5px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">
+        &#8635; Reset
+      </button>
+    </div>
+
+    <div style="width:100%;font-size:11px;color:#888;margin-top:-8px">
+      &#128274; CIBIL credentials sirf aapke browser ke localStorage mein save hote hain — koi remote server ya cloud nahi.
+      &nbsp;|&nbsp; &#9729; GitHub Pages se use karte time bhi local server yahan set karo.
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Server Status -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <strong style="font-size:14px">Python Automation Server</strong>
+      <p style="font-size:12px;color:#555">Make sure <code>cibil_automation.py</code> is running (python cibil_automation.py)</p>
+    </div>
+    <div id="serverStatus" class="server-status server-check">
+      <div class="dot"></div> Checking...
+    </div>
+  </div>
+
+
+  <!-- CIBIL Login Panel -->
+  <div class="cibil-login-panel" id="cibildLoginPanel">
+    <h3>&#128274; CIBIL Account Login</h3>
+
+    <!-- Saved credentials notice bar -->
+    <div class="saved-creds-bar" id="savedCredsBar">
+      &#128274; Credentials aapke browser (localStorage) mein saved hain — auto-fill ho gayi hain.
+      <button class="clear-creds-btn" onclick="clearSavedCreds()">&#128465; Delete saved credentials</button>
+    </div>
+
+    <div class="cibil-login-row">
+      <div class="cibil-login-field">
+        <label for="cibildUser">Username / User ID</label>
+        <input type="text" id="cibildUser" placeholder="e.g. BN05033890" autocomplete="username">
+      </div>
+      <div class="cibil-login-field">
+        <label for="cibildPass">Password</label>
+        <div style="position:relative;display:flex;align-items:center">
+          <input type="password" id="cibildPass" placeholder="Your CIBIL password" autocomplete="current-password" style="padding-right:36px;width:100%">
+          <button type="button" id="togglePassBtn" onclick="togglePassVis()"
+            title="Password dikhao/chhupao"
+            style="position:absolute;right:6px;background:none;border:none;cursor:pointer;font-size:16px;padding:0;line-height:1;color:#666">
+            &#128065;
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-teal" id="cibildLoginBtn" onclick="doCibilLogin()" style="height:36px;white-space:nowrap">
+        &#128275; Login to CIBIL
+      </button>
+      <button class="btn btn-yellow" id="reLoginBtn" onclick="doReLogin()"
+              style="height:36px;white-space:nowrap;display:none"
+              title="CIBIL session reset karein aur dobara login karein">
+        &#8635; Re-Login
+      </button>
+      <div id="loginStatusBadge" class="login-status-badge ls-idle">
+        <div class="ls-dot"></div> <span id="loginStatusText">Not logged in</span>
+      </div>
+    </div>
+
+    <!-- Remember Me -->
+    <div class="remember-row">
+      <input type="checkbox" id="rememberCreds" checked>
+      <label for="rememberCreds">&#128274; Credentials yaad rakho (sirf aapke browser mein save honge — koi remote server nahi)</label>
+    </div>
+
+    <div id="loginNote" style="margin-top:8px;font-size:12px;color:#555;display:none"></div>
+  </div>
+
+  <!-- Lock notice when not logged in -->
+  <div class="lock-notice" id="lockNotice">
+    &#128274; CIBIL login required before automation. Enter credentials above and click <strong>Login to CIBIL</strong>.
+  </div>
+
+  <!-- Upload Zone -->
+  <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+       ondragover="event.preventDefault();this.classList.add('drag-over')"
+       ondragleave="this.classList.remove('drag-over')"
+       ondrop="handleDrop(event)">
+    <svg width="56" height="56" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="48" height="48" rx="24" fill="#d0eef5"/>
+      <path d="M24 14v14M17 21l7-7 7 7" stroke="#007B8A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 34h20" stroke="#007B8A" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <h3>CIBIL .txt Files Yahan Drop Karein ya Click Karein</h3>
+    <p>App 1 se generate ki gayi individual ya bulk .txt/.json files<br>
+       <strong style="color:#005a7a">Ek saath multiple files select kar sakte hain</strong></p>
+    <div class="upload-multi-badge">&#128196; Multiple Files Supported — Ctrl+Click se multiple select karein</div>
+    <input type="file" id="fileInput" multiple accept=".txt,.json" onchange="handleFiles(this.files)">
+  </div>
+
+  <!-- Loaded files chips -->
+  <div id="fileChips" style="margin-bottom:10px"></div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card stat-pending"><div class="num" id="stTotal">0</div><div class="lbl">Total Records</div></div>
+    <div class="stat-card stat-running"><div class="num" id="stRunning">0</div><div class="lbl">Running</div></div>
+    <div class="stat-card stat-done"><div class="num" id="stDone">0</div><div class="lbl">Completed</div></div>
+    <div class="stat-card stat-failed"><div class="num" id="stFailed">0</div><div class="lbl">Failed</div></div>
+  </div>
+
+  <!-- Progress -->
+  <div style="margin-bottom:14px">
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    <div class="progress-text" id="progressText">0 / 0</div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="actions-bar">
+    <button class="btn btn-green" id="startBtn" onclick="startAutomation()" disabled>&#9654; Start Automation</button>
+    <button class="btn btn-red" id="stopBtn" onclick="stopAutomation()" disabled>&#9632; Stop</button>
+    <button class="btn btn-teal" onclick="clearAll()">&#10005; Clear All</button>
+    <button class="btn btn-yellow" onclick="exportResults()">&#11015; Export Results</button>
+    <div style="margin-left:auto;font-size:12px;color:#555">
+      Delay: <input type="number" id="delay" value="3" min="1" max="30" style="width:50px;padding:3px 6px;border:1.5px solid #ccd6dd;border-radius:4px"> sec
+    </div>
+  </div>
+
+  <!-- Download Pending Banner -->
+  <div id="dlPendingBanner"
+       style="display:none;background:linear-gradient(135deg,#1D9E75,#178060);
+              color:#fff;padding:14px 18px;border-radius:8px;margin-bottom:14px;
+              align-items:center;justify-content:space-between;gap:14px;
+              box-shadow:0 3px 14px rgba(29,158,117,.35);flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:28px">&#11015;</span>
+      <div>
+        <div style="font-size:14px;font-weight:700">Reports Download Pending</div>
+        <div id="dlPendingInfo" style="font-size:12px;opacity:.9;margin-top:2px">
+          0 records ki reports abhi download nahi hui hain
+        </div>
+      </div>
+    </div>
+    <button id="dlPendingBtn" onclick="downloadPendingReports()"
+            style="background:#fff;color:#178060;border:none;border-radius:6px;
+                   padding:11px 26px;font-size:13px;font-weight:700;cursor:pointer;
+                   white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.18);
+                   transition:opacity .2s">
+      &#11015; Download Pending Reports
+    </button>
+  </div>
+
+  <!-- Records Table -->
+  <div class="records-section">
+    <div class="records-header">
+      <h3>Records (<span id="recCount">0</span>)</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-yellow small-btn" onclick="selectAll(true)">Select All</button>
+        <button class="btn btn-teal small-btn" onclick="selectAll(false)">Deselect All</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32px"><input type="checkbox" id="checkAll" onchange="selectAll(this.checked)"></th>
+          <th>#</th>
+          <th>Name</th>
+          <th>DOB</th>
+          <th>PAN</th>
+          <th>City / State</th>
+          <th>Enquiry Category</th>
+          <th>Amount</th>
+          <th>MRN</th>
+          <th>Status</th>
+          <th>Message</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recordsBody">
+        <tr id="emptyRow"><td colspan="12" style="text-align:center;padding:30px;color:#999">
+          No records loaded. Upload .txt files from App 1.
+        </td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div style="margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+    <strong style="font-size:13px">Automation Log</strong>
+    <button class="btn btn-teal small-btn" onclick="clearLog()">Clear Log</button>
+  </div>
+  <div class="log-section" id="logBox">
+    <div class="log-line log-info">[SYSTEM] CIBIL Auto Filler App 2 ready.</div>
+    <div class="log-line log-info">[SYSTEM] Load .txt files from App 1 and click Start Automation.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       REPORTS PANEL
+  ════════════════════════════════════════════ -->
+  <div style="margin-top:18px">
+    <!-- Reports Header / Toggle -->
+    <div style="background:linear-gradient(90deg,#005a7a,#007B8A);color:#fff;
+                padding:11px 16px;border-radius:8px 8px 0 0;
+                display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+         onclick="toggleReportsPanel()">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">&#128196;</span>
+        <div>
+          <div style="font-size:14px;font-weight:700">Downloaded CIBIL Reports</div>
+          <div style="font-size:11px;opacity:.8">Form fill ke baad yahan se PDF open ya download karo</div>
+        </div>
+        <span id="reportsBadge"
+              style="background:rgba(255,255,255,.25);border-radius:12px;
+                     padding:2px 10px;font-size:11px;font-weight:700">0</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="event.stopPropagation();renderReportsPanel()"
+                style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);
+                       border-radius:4px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">
+          &#8635; Refresh
+        </button>
+        <span style="font-size:18px;opacity:.7">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Reports Body -->
+    <div id="reportsPanel"
+         style="background:#fff;border:1px solid #d5e8ed;border-top:none;
+                border-radius:0 0 8px 8px;padding:14px;
+                box-shadow:0 2px 8px rgba(0,90,122,.07)">
+
+      <!-- Info bar -->
+      <div style="background:#e8f7fa;border:1px solid #a8d8e2;border-radius:6px;
+                  padding:10px 14px;margin-bottom:12px;font-size:12px;color:#005a7a;
+                  display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:18px">&#128161;</span>
+        <div>
+          <strong>Report Download kaise kaam karta hai?</strong><br>
+          Form fill aur submit hone ke baad, record ke Actions column mein
+          <strong style="color:#1D9E75">&#11015; Report</strong> button aayega.
+          Us par click karne se:<br>
+          &nbsp;&nbsp;1. CIBIL result page pe automatically Download/Print button dhoondha jaata hai<br>
+          &nbsp;&nbsp;2. Agar nahi milta — Print-to-PDF se current page ka PDF ban jaata hai<br>
+          &nbsp;&nbsp;3. PDF yahan list mein dikh jaata hai — Open ya Download karo
+        </div>
+      </div>
+
+      <!-- Reports list (rendered by JS) -->
+      <div id="reportsList">
+        <p style="text-align:center;color:#888;padding:20px">
+          Abhi koi report download nahi hui.<br>
+          Record fill karke <strong>&#11015; Report</strong> button dabao.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="previewModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 id="modalTitle">Record Preview</h3>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="footer">TransUnionCIBIL.com &nbsp;|&nbsp; Terms of Use</div>
+
+<script src="js/config.js"></script>
+<script src="js/app2.js"></script>
+</body>
+</html>
