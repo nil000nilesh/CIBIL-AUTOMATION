@@ -1,0 +1,15 @@
+/* ─────────────────────────────────────────────
+   common.css  —  Shared base styles
+   CIBIL Generation Tool  |  App1 + App2
+───────────────────────────────────────────── */
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Spinner (used in App1 AI extract) ── */
+.spinner{
+  display:inline-block;width:12px;height:12px;
+  border:2px solid #ccc;border-top-color:#007B8A;
+  border-radius:50%;animation:spin .7s linear infinite;
+  vertical-align:middle;margin-right:3px
+}
+@keyframes spin{to{transform:rotate(360deg)}}

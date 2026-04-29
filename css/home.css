@@ -1,0 +1,193 @@
+/* ─────────────────────────────────────────────
+   home.css  —  Landing / Home page styles
+   CIBIL Generation Tool
+───────────────────────────────────────────── */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f5f8;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+/* ── Topbar ─────────────────────────────────── */
+.topbar {
+  background: linear-gradient(90deg, #00364e 0%, #005a7a 55%, #007B8A 100%);
+  color: #fff;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-brand    { display: flex; align-items: center; gap: 14px; }
+.topbar-logo-box {
+  background: rgba(255,255,255,.15);
+  border: 1.5px solid rgba(255,255,255,.35);
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+.logo-text   { font-size: 16px; font-weight: 800; letter-spacing: .5px; }
+.logo-sub    { font-size: 11px; font-weight: 600; opacity: .85; letter-spacing: 2px; }
+.brand-title { font-size: 16px; font-weight: 700; }
+.brand-sub   { font-size: 11px; opacity: .75; }
+
+/* ── Server badge ───────────────────────────── */
+.srv-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px; white-space: nowrap;
+}
+.srv-badge .dot { width: 8px; height: 8px; border-radius: 50%; }
+.srv-ok  { background: rgba(29,158,117,.2); }  .srv-ok  .dot { background: #1D9E75; }
+.srv-err { background: rgba(192,57,43,.2); }   .srv-err .dot { background: #e74c3c; }
+.srv-chk { background: rgba(255,255,255,.1); } .srv-chk .dot { background: #f39c12; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Content container ──────────────────────── */
+.home-content {
+  max-width: 980px;
+  margin: 28px auto;
+  padding: 0 16px 40px;
+}
+
+/* ── App Cards ──────────────────────────────── */
+.app-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+@media (max-width: 640px) { .app-cards { grid-template-columns: 1fr; } }
+
+.app-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fff;
+  border: 1.5px solid #d5e8ed;
+  border-radius: 10px;
+  padding: 22px 18px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 8px rgba(0,90,122,.07);
+  transition: transform .15s, box-shadow .15s, border-color .15s;
+  cursor: pointer;
+}
+.app-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,90,122,.17);
+  border-color: #007B8A;
+}
+.app-card-icon  { font-size: 40px; flex-shrink: 0; }
+.app-card-body  { flex: 1; }
+.app-card-title { font-size: 15px; font-weight: 700; color: #005a7a; margin-bottom: 6px; }
+.app-card-desc  { font-size: 12px; color: #555; line-height: 1.55; margin-bottom: 9px; }
+
+.app-card-features { display: flex; gap: 5px; flex-wrap: wrap; }
+.feat-chip   { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 10px; }
+.feat-online { background: #d4efdf; color: #1a6b3a; }
+.feat-ai     { background: #dde8f5; color: #1a4a7a; }
+.feat-docs   { background: #e8f7fa; color: #005a7a; }
+.feat-warn   { background: #fff3cd; color: #856404; }
+
+.app-card-arrow { font-size: 30px; color: #007B8A; font-weight: 300; flex-shrink: 0; opacity: .5; }
+.app-card:hover .app-card-arrow { opacity: 1; }
+
+/* ── Panel cards (Server, Setup, Info) ─────── */
+.panel-card {
+  background: #fff;
+  border: 1.5px solid #d5e8ed;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,90,122,.05);
+}
+.panel-title {
+  font-size: 14px; font-weight: 700; color: #005a7a;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8f3f6;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Server panel ───────────────────────────── */
+.server-status-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.srv-detail-msg { flex: 1; font-size: 13px; }
+
+.srv-url-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.srv-url-row label { font-size: 12px; font-weight: 600; color: #555; white-space: nowrap; }
+.srv-url-row input {
+  flex: 1; min-width: 200px;
+  padding: 7px 10px;
+  border: 1.5px solid #ccd6dd; border-radius: 5px;
+  font-size: 12px; font-family: monospace;
+  outline: none;
+}
+.srv-url-row input:focus { border-color: #007B8A; }
+
+.btn-sm {
+  border: none; border-radius: 5px;
+  padding: 7px 16px; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: opacity .15s, transform .1s;
+}
+.btn-sm:hover { opacity: .87; transform: translateY(-1px); }
+.btn-teal-sm  { background: linear-gradient(135deg,#007B8A,#005a7a); color: #fff; }
+.btn-green-sm { background: linear-gradient(135deg,#1D9E75,#178060); color: #fff; }
+
+/* ── Setup steps ────────────────────────────── */
+.setup-steps { display: flex; flex-direction: column; gap: 10px; }
+.setup-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px;
+  background: #f8fbfc;
+  border-radius: 7px;
+  border: 1px solid #e4eff3;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg,#005a7a,#007B8A);
+  color: #fff; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-body       { font-size: 12px; color: #444; line-height: 1.65; }
+.step-body strong { color: #005a7a; }
+.step-body code  {
+  background: #e8f3f6; border: 1px solid #d0e8f0;
+  border-radius: 3px; padding: 1px 7px;
+  font-size: 11px; font-family: 'Consolas', monospace; color: #005a7a;
+}
+
+/* ── Info chips row ─────────────────────────── */
+.info-chips { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+.info-chip {
+  background: linear-gradient(90deg,#e8f7fa,#f0fbfc);
+  border: 1px solid #a8d8e2;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 12px; color: #005a7a;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Footer ─────────────────────────────────── */
+.footer {
+  text-align: center;
+  padding: 14px;
+  font-size: 11px;
+  color: #888;
+  border-top: 1px solid #e0ecf1;
+}
