@@ -2007,6 +2007,88 @@ def login_reset():
     return jsonify({"status": "not_started"})
 
 
+@app.route("/screenshot", methods=["GET"])
+def get_screenshot():
+    """Return current Chrome window screenshot as base64 PNG."""
+    d = driver
+    if not d:
+        return jsonify({"status": "error", "message": "Browser open nahi hai"})
+    try:
+        img_b64 = d.get_screenshot_as_base64()
+        return jsonify({"status": "ok", "image": img_b64})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
+@app.route("/fill_captcha", methods=["POST"])
+def fill_captcha():
+    """Fill CAPTCHA field in current browser page."""
+    d = driver
+    if not d:
+        return jsonify({"status": "error", "message": "Browser open nahi hai"})
+    data    = request.get_json(silent=True) or {}
+    captcha = str(data.get("captcha", "")).strip()
+    if not captcha:
+        return jsonify({"status": "error", "message": "CAPTCHA value khali hai"})
+    try:
+        # Common CAPTCHA field selectors on CIBIL portal
+        selectors = [
+            (By.NAME, "captcha"), (By.ID, "captcha"),
+            (By.NAME, "txtCaptcha"), (By.ID, "txtCaptcha"),
+            (By.NAME, "CaptchaCode"), (By.ID, "CaptchaCode"),
+            (By.CSS_SELECTOR, "input[placeholder*='captcha' i]"),
+            (By.CSS_SELECTOR, "input[placeholder*='code' i]"),
+            (By.CSS_SELECTOR, "input[name*='captcha' i]"),
+            (By.CSS_SELECTOR, "input[id*='captcha' i]"),
+        ]
+        field = None
+        for by, sel in selectors:
+            try:
+                el = d.find_element(by, sel)
+                if el.is_displayed() and el.is_enabled():
+                    field = el; break
+            except Exception:
+                continue
+        if not field:
+            return jsonify({"status": "error", "message": "CAPTCHA field nahi mila — screenshot check karo"})
+        field.clear()
+        field.send_keys(captcha)
+        log.info(f"[CAPTCHA] Filled: {captcha}")
+        return jsonify({"status": "ok", "message": "CAPTCHA fill ho gaya"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)[:120]})
+
+
+@app.route("/click_login_submit", methods=["POST"])
+def click_login_submit():
+    """Click the login/submit button on current page."""
+    d = driver
+    if not d:
+        return jsonify({"status": "error", "message": "Browser open nahi hai"})
+    try:
+        selectors = [
+            (By.CSS_SELECTOR, "input[type='submit']"),
+            (By.CSS_SELECTOR, "button[type='submit']"),
+            (By.NAME, "btnLogin"), (By.ID, "btnLogin"),
+            (By.NAME, "btnSubmit"), (By.ID, "btnSubmit"),
+            (By.CSS_SELECTOR, "button"),
+        ]
+        for by, sel in selectors:
+            try:
+                btns = d.find_elements(by, sel)
+                for btn in btns:
+                    txt = (btn.text or btn.get_attribute("value") or "").lower()
+                    if btn.is_displayed() and any(k in txt for k in ["login","submit","verify","proceed","sign in","continue"]):
+                        btn.click()
+                        log.info(f"[SUBMIT] Clicked: '{btn.text}'")
+                        return jsonify({"status": "ok", "message": "Button click ho gaya"})
+            except Exception:
+                continue
+        return jsonify({"status": "error", "message": "Submit button nahi mila"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)[:120]})
+
+
 @app.route("/submit_otp", methods=["POST"])
 def submit_otp():
     """

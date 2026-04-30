@@ -358,6 +358,114 @@ function exportResults() {
   addLog('[EXPORT] Results exported: CIBIL_Results_' + ts + '.txt', 'ok');
 }
 
+// ─── LIVE BROWSER VIEWER ─────────────────────
+let _screenshotTimer  = null;
+let _autoRefreshOn    = true;
+
+function showBrowserViewer() {
+  const v = document.getElementById('browserViewer');
+  if (v) { v.style.display = 'block'; v.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  refreshScreenshot();
+  startAutoRefresh();
+}
+
+function hideBrowserViewer() {
+  stopAutoRefresh();
+  const v = document.getElementById('browserViewer');
+  if (v) v.style.display = 'none';
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  _autoRefreshOn = true;
+  const btn = document.getElementById('autoRefreshBtn');
+  if (btn) btn.textContent = '⏸ Pause';
+  _screenshotTimer = setInterval(refreshScreenshot, 2500);
+}
+
+function stopAutoRefresh() {
+  if (_screenshotTimer) { clearInterval(_screenshotTimer); _screenshotTimer = null; }
+}
+
+function toggleAutoRefresh() {
+  const btn = document.getElementById('autoRefreshBtn');
+  if (_screenshotTimer) {
+    stopAutoRefresh(); _autoRefreshOn = false;
+    if (btn) btn.textContent = '▶ Resume';
+  } else {
+    startAutoRefresh();
+  }
+}
+
+async function refreshScreenshot() {
+  const img    = document.getElementById('browserScreenshot');
+  const status = document.getElementById('viewerStatus');
+  if (!img) return;
+  try {
+    const r = await fetch(SERVER + '/screenshot', { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    if (d.status === 'ok' && d.image) {
+      img.src = 'data:image/png;base64,' + d.image;
+      if (status) status.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    } else {
+      if (status) status.textContent = d.message || 'Screenshot error';
+    }
+  } catch(e) {
+    if (status) status.textContent = 'Server unreachable';
+  }
+}
+
+async function submitCaptcha() {
+  const inp = document.getElementById('captchaInput');
+  const msg = document.getElementById('viewerActionMsg');
+  const val = inp ? inp.value.trim() : '';
+  if (!val) { if (msg) { msg.style.color='#c0392b'; msg.textContent='CAPTCHA khali hai'; } return; }
+  if (msg) { msg.style.color='#555'; msg.textContent='Filling...'; }
+  try {
+    const r = await fetch(SERVER + '/fill_captcha', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ captcha: val }), signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    if (d.status === 'ok') { addLog('[CAPTCHA] Fill ho gaya: ' + val, 'ok'); refreshScreenshot(); }
+    else addLog('[CAPTCHA] Error: ' + d.message, 'err');
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
+async function clickLoginSubmit() {
+  const msg = document.getElementById('viewerActionMsg');
+  if (msg) { msg.style.color='#555'; msg.textContent='Submitting...'; }
+  try {
+    const r = await fetch(SERVER + '/click_login_submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: '{}', signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    addLog('[LOGIN] Submit click: ' + d.message, d.status==='ok'?'ok':'err');
+    setTimeout(refreshScreenshot, 1500);
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
+async function submitOTPFromViewer() {
+  const inp = document.getElementById('otpInputViewer');
+  const msg = document.getElementById('viewerActionMsg');
+  const otp = inp ? inp.value.trim() : '';
+  if (!otp) { if (msg) { msg.style.color='#c0392b'; msg.textContent='OTP khali hai'; } return; }
+  if (msg) { msg.style.color='#555'; msg.textContent='OTP submit ho raha hai...'; }
+  try {
+    const r = await fetch(SERVER + '/submit_otp', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ otp }), signal: AbortSignal.timeout(10000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    if (d.status === 'ok') { addLog('[OTP] Submit ho gaya', 'ok'); startLoginPoll(); }
+    else addLog('[OTP] Error: ' + d.message, 'err');
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
 // ─── OTP SUBMIT ──────────────────────────────
 async function submitOTP() {
   const inp = document.getElementById('otpInput');
@@ -447,9 +555,10 @@ function updateLoginBadge(status, msg) {
     cibilLoggedIn = true;
     loginBtn.disabled = true;
     loginBtn.textContent = '✓ Logged In';
-    reLoginBtn.style.display = 'inline-flex';   // ← show Re-Login
+    reLoginBtn.style.display = 'inline-flex';
     document.getElementById('dropZone').classList.remove('upload-locked');
     lock.style.display = 'none';
+    hideBrowserViewer(); // Login complete — viewer band karo
     updateStartBtn();
     stopLoginPoll();
     // Note: browserPollTimer is NOT stopped — it keeps watching for session expiry
@@ -459,6 +568,7 @@ function updateLoginBadge(status, msg) {
   } else if (status === 'waiting_otp') {
     badge.classList.add('ls-waiting');
     text.textContent = 'Waiting for OTP...';
+    showBrowserViewer(); // CAPTCHA + OTP dono browser viewer mein handle honge
     note.style.display = 'block';
     note.innerHTML = `
       <strong>&#128241; OTP aaya hoga aapke registered mobile/email pe — neeche daalo:</strong>
@@ -485,6 +595,8 @@ function updateLoginBadge(status, msg) {
     note.textContent = msg || 'Chrome window khul raha hai...';
     lock.style.display = 'block';
     reLoginBtn.style.display = 'none';
+    // Show live browser viewer after short delay (Chrome takes a moment to open)
+    setTimeout(showBrowserViewer, 3000);
 
   } else if (status === 'error' || status === 'failed') {
     badge.classList.add('ls-error');
