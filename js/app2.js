@@ -498,12 +498,15 @@ async function saveAndRetry() {
 // ─── LIVE BROWSER VIEWER ─────────────────────
 let _screenshotTimer  = null;
 let _autoRefreshOn    = true;
+let _userTyping       = false;
 
 function showBrowserViewer() {
   const v = document.getElementById('browserViewer');
-  if (v) { v.style.display = 'block'; v.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-  refreshScreenshot();
-  startAutoRefresh();
+  if (!v) return;
+  const alreadyVisible = v.style.display !== 'none' && v.style.display !== '';
+  v.style.display = 'block';
+  if (!alreadyVisible) v.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (!_screenshotTimer) { refreshScreenshot(); startAutoRefresh(); }
 }
 
 function hideBrowserViewer() {
@@ -708,25 +711,11 @@ function updateLoginBadge(status, msg) {
   } else if (status === 'waiting_otp') {
     badge.classList.add('ls-waiting');
     text.textContent = 'Waiting for OTP...';
-    showBrowserViewer(); // CAPTCHA + OTP dono browser viewer mein handle honge
+    showBrowserViewer();
     note.style.display = 'block';
-    note.innerHTML = `
-      <strong>&#128241; OTP aaya hoga aapke registered mobile/email pe — neeche daalo:</strong>
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
-        <input id="otpInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8"
-          placeholder="OTP enter karo"
-          style="padding:8px 12px;border:2px solid #007B8A;border-radius:6px;font-size:16px;
-                 font-weight:700;letter-spacing:4px;width:160px;text-align:center;outline:none">
-        <button onclick="submitOTP()"
-          style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
-                 border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer">
-          &#10003; Submit OTP
-        </button>
-        <span id="otpMsg" style="font-size:12px;color:#555"></span>
-      </div>`;
+    note.innerHTML = '<strong>&#128241; OTP aaya hoga — Live Viewer mein OTP box mein daalo (neeche)</strong>';
     lock.style.display = 'block';
     reLoginBtn.style.display = 'none';
-    setTimeout(() => { const el = document.getElementById('otpInput'); if (el) el.focus(); }, 100);
 
   } else if (status === 'logging_in') {
     badge.classList.add('ls-logging');
@@ -966,6 +955,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // OTP Enter key — delegated (otpInput is created dynamically)
   document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.id === 'otpInput') submitOTP();
+  });
+
+  // Pause screenshot auto-refresh while user is typing in viewer inputs
+  document.addEventListener('focusin', e => {
+    if (e.target.closest('#browserViewer') && _screenshotTimer) {
+      stopAutoRefresh();
+      _userTyping = true;
+    }
+  });
+  document.addEventListener('focusout', e => {
+    if (e.target.closest('#browserViewer') && _userTyping) {
+      _userTyping = false;
+      if (_autoRefreshOn) startAutoRefresh();
+    }
   });
 });
 
