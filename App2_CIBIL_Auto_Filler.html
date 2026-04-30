@@ -23,6 +23,16 @@
   <span class="app2-badge">&#9881; Automation Engine</span>
 </div>
 
+<div class="app-switcher">
+  <a href="App1_CIBIL_Entry_Form.html">
+    &#128203; App 1 &mdash; Entry Form
+  </a>
+  <a href="App2_CIBIL_Auto_Filler.html" class="active">
+    &#9881; App 2 &mdash; Auto Filler
+    <span class="app-badge">Active</span>
+  </a>
+</div>
+
 <div class="navbar">
   <button class="active">Auto Filler</button>
   <button onclick="checkServer()">Check Server</button>
@@ -131,6 +141,27 @@
   <!-- Lock notice when not logged in -->
   <div class="lock-notice" id="lockNotice">
     &#128274; CIBIL login required before automation. Enter credentials above and click <strong>Login to CIBIL</strong>.
+  </div>
+
+  <!-- App1 Queue Import Banner -->
+  <div id="app1QueueBanner" style="display:none;align-items:center;gap:12px;
+       background:linear-gradient(135deg,#e8f8f2,#d0eef5);border:1.5px solid #1D9E75;
+       border-radius:8px;padding:12px 16px;margin-bottom:12px">
+    <span style="font-size:22px">&#128203;</span>
+    <div style="flex:1">
+      <div style="font-weight:700;color:#005a7a;font-size:13px">
+        App 1 mein <strong id="app1QueueCount">0</strong> record(s) ready hain!
+      </div>
+      <div style="font-size:11px;color:#555;margin-top:2px">
+        App 1 se data directly yahan import karo — file download/upload ki zaroorat nahi
+      </div>
+    </div>
+    <button onclick="loadFromApp1Queue()"
+            style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                   border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;
+                   white-space:nowrap">
+      &#9889; App 1 se Import Karo
+    </button>
   </div>
 
   <!-- Upload Zone -->
@@ -326,5 +357,20 @@
 
 <script src="js/config.js"></script>
 <script src="js/app2.js"></script>
+<script>
+// App1 queue check — banner dikhao agar records hain
+(function checkApp1Queue() {
+  try {
+    const raw = localStorage.getItem('cibil_app1_queue');
+    if (!raw) return;
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items) || !items.length) return;
+    const banner = document.getElementById('app1QueueBanner');
+    const count  = document.getElementById('app1QueueCount');
+    if (banner) banner.style.display = 'flex';
+    if (count)  count.textContent = items.length;
+  } catch(e) {}
+})();
+</script>
 </body>
 </html>

@@ -358,6 +358,39 @@ function exportResults() {
   addLog('[EXPORT] Results exported: CIBIL_Results_' + ts + '.txt', 'ok');
 }
 
+// ─── LOAD FROM APP1 QUEUE (localStorage) ─────
+function loadFromApp1Queue() {
+  try {
+    const raw = localStorage.getItem('cibil_app1_queue');
+    if (!raw) { addLog('[APP1] App 1 mein abhi koi record nahi hai.', 'warn'); return; }
+    const items = JSON.parse(raw);
+    if (!Array.isArray(items) || !items.length) {
+      addLog('[APP1] App 1 queue khali hai — pehle App 1 mein records add karo.', 'warn'); return;
+    }
+    let added = 0;
+    items.forEach(item => {
+      item._status  = 'pending';
+      item._message = '';
+      item._file    = item._file || ('CIBIL_' + (item.first_name || '') + '_' + (item.mrn || '') + '.txt');
+      // Duplicate check (mrn basis pe)
+      const exists = records.some(r => r.mrn && r.mrn === item.mrn);
+      if (!exists) { records.push(item); added++; }
+    });
+    if (added) {
+      if (!loadedFiles.includes('App1_Queue')) loadedFiles.push('App1_Queue');
+      renderFileChips();
+      renderTable();
+      updateStats();
+      updateStartBtn();
+      addLog('[APP1] ' + added + ' record(s) App 1 queue se load ho gaye!', 'ok');
+    } else {
+      addLog('[APP1] Saare records pehle se loaded hain (duplicate skip kiye).', 'warn');
+    }
+  } catch(e) {
+    addLog('[APP1] Queue load error: ' + e.message, 'err');
+  }
+}
+
 // ─── INIT ────────────────────────────────────
 checkServer();
 setInterval(checkServer, 30000);

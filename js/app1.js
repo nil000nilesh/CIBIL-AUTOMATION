@@ -320,11 +320,9 @@ function addToQueue() {
   }
   const data = collectFormData();
   const filename = 'CIBIL_' + data.first_name + '_' + (data.mrn || Date.now()) + '.txt';
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click();
   queue.push({ ...data, _file: filename });
   renderQueue();
-  showMsg('&#10003; Record queue mein add ho gaya: ' + filename + ' — Naya form fill karo', 'ok');
+  showMsg('&#10003; Record queue mein add ho gaya — App 2 mein automatically available hai', 'ok');
 
   // Auto-scroll to queue section
   const qSection = document.getElementById('queueSection');
@@ -350,6 +348,17 @@ function renderQueue() {
   if (dlBtn)   dlBtn.disabled      = !queue.length;
   if (dlIndivBtn) dlIndivBtn.disabled = !queue.length;
   if (clrBtn)  clrBtn.disabled     = !queue.length;
+
+  // localStorage mein save karo — App2 automatically load karega
+  const clean = queue.map(r => { const c = {...r}; delete c._file; return c; });
+  try { localStorage.setItem('cibil_app1_queue', JSON.stringify(clean)); } catch(e) {}
+
+  // App2 tab badge update karo
+  const badge = document.getElementById('app2QueueBadge');
+  if (badge) {
+    badge.textContent = queue.length;
+    badge.style.display = queue.length ? 'inline-flex' : 'none';
+  }
   if (dlCount) dlCount.textContent = queue.length
     ? 'Queue mein ' + queue.length + ' record' + (queue.length !== 1 ? 's' : '') + ' hain — download karo'
     : 'Queue mein abhi koi record nahi hai';
