@@ -156,12 +156,19 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 @app.route("/")
 @app.route("/app1")
+@app.route("/App1_CIBIL_Entry_Form.html")
 def serve_app1():
     return send_from_directory(BASE_DIR, "App1_CIBIL_Entry_Form.html")
 
 @app.route("/app2")
+@app.route("/App2_CIBIL_Auto_Filler.html")
 def serve_app2():
     return send_from_directory(BASE_DIR, "App2_CIBIL_Auto_Filler.html")
+
+@app.route("/index.html")
+@app.route("/home")
+def serve_home():
+    return send_from_directory(BASE_DIR, "index.html")
 
 @app.route("/css/<path:filename>")
 def serve_css(filename):
