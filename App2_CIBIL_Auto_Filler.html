@@ -164,8 +164,8 @@
     </div>
     <img id="browserScreenshot" src="" alt="Browser screenshot loading..."
          style="width:100%;display:block;max-height:480px;object-fit:contain;background:#1a1a2e">
-    <!-- CAPTCHA + OTP inputs below screenshot -->
-    <div style="background:#f0f8fb;padding:12px 16px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <!-- CAPTCHA row -->
+    <div style="background:#f0f8fb;padding:10px 16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border-top:1px solid #cce4ea">
       <div>
         <label style="font-size:11px;font-weight:700;color:#005a7a;display:block;margin-bottom:4px">
           &#128274; CAPTCHA (screenshot mein dekho aur yahan type karo)
@@ -181,21 +181,6 @@
           </button>
         </div>
       </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#005a7a;display:block;margin-bottom:4px">
-          &#128241; OTP (mobile/email se)
-        </label>
-        <div style="display:flex;gap:6px">
-          <input id="otpInputViewer" type="text" inputmode="numeric" maxlength="8" placeholder="OTP"
-                 style="padding:7px 10px;border:2px solid #1D9E75;border-radius:5px;font-size:14px;
-                        font-weight:700;letter-spacing:3px;width:120px;outline:none">
-          <button onclick="submitOTPFromViewer()"
-                  style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
-                         border-radius:5px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">
-            Submit
-          </button>
-        </div>
-      </div>
       <button onclick="clickLoginSubmit()"
               style="background:linear-gradient(135deg,#e67e22,#d35400);color:#fff;border:none;
                      border-radius:5px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;
@@ -203,6 +188,24 @@
         &#9654; Login Submit
       </button>
       <span id="viewerActionMsg" style="font-size:11px;color:#555;align-self:flex-end"></span>
+    </div>
+    <!-- OTP row — shown separately below CAPTCHA -->
+    <div style="background:#eafaf3;padding:10px 16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border-top:1px solid #b2e4d0">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#178060;display:block;margin-bottom:4px">
+          &#128241; OTP (mobile/email se — CAPTCHA fill karne ke baad aayega)
+        </label>
+        <div style="display:flex;gap:6px">
+          <input id="otpInputViewer" type="text" inputmode="numeric" maxlength="8" placeholder="OTP daalo"
+                 style="padding:7px 10px;border:2px solid #1D9E75;border-radius:5px;font-size:14px;
+                        font-weight:700;letter-spacing:3px;width:140px;outline:none">
+          <button onclick="submitOTPFromViewer()"
+                  style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                         border-radius:5px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">
+            Submit OTP
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
