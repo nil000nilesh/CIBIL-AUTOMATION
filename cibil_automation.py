@@ -2007,6 +2007,110 @@ def login_reset():
     return jsonify({"status": "not_started"})
 
 
+@app.route("/submit_otp", methods=["POST"])
+def submit_otp():
+    """
+    Accept OTP from browser UI and enter it into the CIBIL portal's OTP field.
+    Called when login_status == 'waiting_otp' and user types OTP in App2.
+    """
+    global login_status, login_message
+    if login_status != "waiting_otp":
+        return jsonify({"status": "error", "message": f"OTP abhi expected nahi — current status: {login_status}"})
+
+    data = request.get_json(silent=True) or {}
+    otp  = str(data.get("otp", "")).strip()
+    if not otp or not otp.isdigit():
+        return jsonify({"status": "error", "message": "Valid numeric OTP daalo"})
+
+    d = driver
+    if not d:
+        return jsonify({"status": "error", "message": "Browser open nahi hai — pehle Login karo"})
+
+    try:
+        # Try common OTP field selectors used by CIBIL portal
+        otp_selectors = [
+            (By.NAME,  "txtOTP"),
+            (By.ID,    "txtOTP"),
+            (By.NAME,  "otp"),
+            (By.ID,    "otp"),
+            (By.CSS_SELECTOR, "input[placeholder*='OTP' i]"),
+            (By.CSS_SELECTOR, "input[placeholder*='otp' i]"),
+            (By.CSS_SELECTOR, "input[type='text'][maxlength]"),
+            (By.CSS_SELECTOR, "input[type='number']"),
+            (By.CSS_SELECTOR, "input[type='tel']"),
+        ]
+        otp_field = None
+        for by, sel in otp_selectors:
+            try:
+                el = d.find_element(by, sel)
+                if el.is_displayed():
+                    otp_field = el
+                    log.info(f"[OTP] Field found: {by}={sel}")
+                    break
+            except Exception:
+                continue
+
+        if not otp_field:
+            # Last resort: find any visible single-line text input on page
+            inputs = d.find_elements(By.CSS_SELECTOR, "input:not([type='hidden']):not([type='password'])")
+            for inp in inputs:
+                try:
+                    if inp.is_displayed() and inp.is_enabled():
+                        otp_field = inp
+                        log.info("[OTP] Field found via generic input fallback")
+                        break
+                except Exception:
+                    continue
+
+        if not otp_field:
+            return jsonify({"status": "error", "message": "OTP field page pe nahi mila — manually check karo"})
+
+        # Clear and enter OTP
+        otp_field.clear()
+        otp_field.send_keys(otp)
+        log.info(f"[OTP] Entered OTP: {'*' * len(otp)}")
+
+        # Try to submit — look for submit/verify button
+        submit_selectors = [
+            (By.CSS_SELECTOR, "input[type='submit']"),
+            (By.CSS_SELECTOR, "button[type='submit']"),
+            (By.CSS_SELECTOR, "button"),
+            (By.NAME,  "btnSubmit"),
+            (By.ID,    "btnSubmit"),
+            (By.NAME,  "btnVerify"),
+            (By.ID,    "btnVerify"),
+        ]
+        submitted = False
+        for by, sel in submit_selectors:
+            try:
+                btns = d.find_elements(by, sel)
+                for btn in btns:
+                    txt = (btn.text or btn.get_attribute("value") or "").lower()
+                    if btn.is_displayed() and any(k in txt for k in ["submit","verify","login","proceed","confirm","ok"]):
+                        btn.click()
+                        submitted = True
+                        log.info(f"[OTP] Submit button clicked: '{btn.text}'")
+                        break
+                if submitted:
+                    break
+            except Exception:
+                continue
+
+        if not submitted:
+            # Try pressing Enter as fallback
+            from selenium.webdriver.common.keys import Keys as _Keys
+            otp_field.send_keys(_Keys.RETURN)
+            submitted = True
+            log.info("[OTP] Submitted via Enter key")
+
+        login_message = "OTP submit ho gaya — login verify ho raha hai..."
+        return jsonify({"status": "ok", "message": "OTP submit ho gaya — thoda wait karo"})
+
+    except Exception as e:
+        log.error(f"[OTP] Submit error: {e}")
+        return jsonify({"status": "error", "message": f"OTP submit error: {str(e)[:120]}"})
+
+
 @app.route("/check_browser_login", methods=["GET"])
 def check_browser_login():
     """

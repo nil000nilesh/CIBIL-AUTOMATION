@@ -358,6 +358,39 @@ function exportResults() {
   addLog('[EXPORT] Results exported: CIBIL_Results_' + ts + '.txt', 'ok');
 }
 
+// ─── OTP SUBMIT ──────────────────────────────
+async function submitOTP() {
+  const inp = document.getElementById('otpInput');
+  const msg = document.getElementById('otpMsg');
+  if (!inp) return;
+  const otp = inp.value.trim();
+  if (!otp || !/^\d+$/.test(otp)) {
+    if (msg) { msg.style.color = '#c0392b'; msg.textContent = 'Sirf digits daalo'; }
+    return;
+  }
+  if (msg) { msg.style.color = '#555'; msg.textContent = 'Submit ho raha hai...'; }
+  try {
+    const r = await fetch(SERVER + '/submit_otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp }),
+      signal: AbortSignal.timeout(10000)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      if (msg) { msg.style.color = '#1a6b3a'; msg.textContent = '✓ ' + d.message; }
+      addLog('[OTP] OTP submit ho gaya — login verify ho raha hai...', 'ok');
+      startLoginPoll();
+    } else {
+      if (msg) { msg.style.color = '#c0392b'; msg.textContent = '✗ ' + (d.message || 'Error'); }
+      addLog('[OTP] Submit fail: ' + (d.message || 'Error'), 'err');
+    }
+  } catch(e) {
+    if (msg) { msg.style.color = '#c0392b'; msg.textContent = 'Server error: ' + e.message; }
+    addLog('[OTP] Server error: ' + e.message, 'err');
+  }
+}
+
 // ─── LOAD FROM APP1 QUEUE (localStorage) ─────
 function loadFromApp1Queue() {
   try {
@@ -427,9 +460,23 @@ function updateLoginBadge(status, msg) {
     badge.classList.add('ls-waiting');
     text.textContent = 'Waiting for OTP...';
     note.style.display = 'block';
-    note.innerHTML = '<strong>Chrome window mein OTP enter karein manually.</strong>';
+    note.innerHTML = `
+      <strong>&#128241; OTP aaya hoga aapke registered mobile/email pe — neeche daalo:</strong>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <input id="otpInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+          placeholder="OTP enter karo"
+          style="padding:8px 12px;border:2px solid #007B8A;border-radius:6px;font-size:16px;
+                 font-weight:700;letter-spacing:4px;width:160px;text-align:center;outline:none">
+        <button onclick="submitOTP()"
+          style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                 border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer">
+          &#10003; Submit OTP
+        </button>
+        <span id="otpMsg" style="font-size:12px;color:#555"></span>
+      </div>`;
     lock.style.display = 'block';
     reLoginBtn.style.display = 'none';
+    setTimeout(() => { const el = document.getElementById('otpInput'); if (el) el.focus(); }, 100);
 
   } else if (status === 'logging_in') {
     badge.classList.add('ls-logging');
@@ -654,6 +701,7 @@ function togglePassVis() {
 }
 
 // When user starts typing in password field, clear saved flag
+// Also handle Enter key on dynamically created OTP input
 document.addEventListener('DOMContentLoaded', () => {
   const passEl = document.getElementById('cibildPass');
   passEl.addEventListener('input', function() {
@@ -661,6 +709,11 @@ document.addEventListener('DOMContentLoaded', () => {
       this.removeAttribute('data-saved');
       this.placeholder = 'Your CIBIL password';
     }
+  });
+
+  // OTP Enter key — delegated (otpInput is created dynamically)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'otpInput') submitOTP();
   });
 });
 
