@@ -3,8 +3,18 @@
    CIBIL Generation Tool — GitHub Pages Version
 ───────────────────────────────────────────── */
 
-// Local Python server URL — user can change this in Settings (saved to localStorage)
-const SERVER = localStorage.getItem('cibil_server_url') || 'http://localhost:5000';
+// Production Render server URL
+const RENDER_SERVER = 'https://cibil-automation.onrender.com';
+
+// Auto-detect: GitHub Pages ya koi bhi non-localhost domain pe Render use karo
+function _defaultServer() {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1' || h === '') return 'http://localhost:5000';
+  return RENDER_SERVER;
+}
+
+// User-saved URL ko priority do, warna auto-detect
+const SERVER = localStorage.getItem('cibil_server_url') || _defaultServer();
 
 // localStorage key names used across both apps
 const LS = {

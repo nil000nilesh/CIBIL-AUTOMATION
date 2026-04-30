@@ -66,19 +66,19 @@
 
   <!-- ── SERVER STATUS ── -->
   <div class="panel-card">
-    <div class="panel-title">&#128421; Local Python Server</div>
+    <div class="panel-title" id="serverPanelTitle">&#128421; Server Status</div>
 
     <div class="server-status-row">
-      <div id="srvDetailMsg" class="srv-detail-msg" style="color:#888">Checking local server...</div>
+      <div id="srvDetailMsg" class="srv-detail-msg" style="color:#888">Checking server...</div>
       <button class="btn-sm btn-teal-sm" onclick="checkHomeServer()">&#8635; Refresh</button>
     </div>
 
     <div class="srv-url-row">
       <label>Server URL:</label>
-      <input type="text" id="serverUrlInput" placeholder="http://localhost:5000">
+      <input type="text" id="serverUrlInput" placeholder="https://cibil-automation.onrender.com">
       <button class="btn-sm btn-green-sm" onclick="saveServerUrl()">&#128190; Save URL</button>
     </div>
-    <p style="font-size:11px;color:#888;margin-top:8px">
+    <p id="serverHint" style="font-size:11px;color:#888;margin-top:8px">
       &#128161; App 2 ke liye server zaroori hai. App 1 sirf images ke liye bina server ke bhi kaam karta hai (browser mode).
     </p>
   </div>
@@ -158,8 +158,25 @@
 <script src="js/config.js"></script>
 <script>
 // ── Init ────────────────────────────────────────────────────
-document.getElementById('serverUrlInput').value =
-  localStorage.getItem(LS.SERVER_URL) || 'http://localhost:5000';
+const _isOnline = (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && location.hostname !== '');
+
+// Input mein current SERVER dikhao (auto-detected ya user-saved)
+document.getElementById('serverUrlInput').value = SERVER;
+
+// Online mode pe panel title aur hint update karo
+if (_isOnline) {
+  const title = document.getElementById('serverPanelTitle');
+  if (title) title.innerHTML = '&#9729; Render Cloud Server';
+  const hint = document.getElementById('serverHint');
+  if (hint) hint.innerHTML =
+    '&#9989; Online mode mein <strong>Render server</strong> auto-connect ho raha hai: <code>' + RENDER_SERVER + '</code><br>' +
+    'App 1 (AI extract) aur App 2 (Selenium) dono Render pe run hote hain.';
+} else {
+  const hint = document.getElementById('serverHint');
+  if (hint) hint.innerHTML =
+    '&#128161; Local mode — <code>python cibil_automation.py</code> chalao. ' +
+    'App 1 browser mode mein bina server ke bhi kaam karta hai.';
+}
 
 async function checkHomeServer() {
   const badge  = document.getElementById('srvBadge');
@@ -169,18 +186,20 @@ async function checkHomeServer() {
   detail.textContent = 'Checking...';
   detail.style.color = '#888';
   try {
-    const r = await fetch(SERVER + '/ping', { signal: AbortSignal.timeout(3000) });
+    const r = await fetch(SERVER + '/ping', { signal: AbortSignal.timeout(5000) });
     const d = await r.json();
     badge.className = 'srv-badge srv-ok';
     badge.innerHTML = '<div class="dot"></div> Server Online';
     detail.textContent = '✓ Server online — AI: ' + (d.ai_provider || 'N/A') +
-                         ' | Selenium: ' + (d.selenium ? 'OK' : 'Not installed');
+                         ' | Selenium: ' + (d.selenium ? 'OK' : 'Not installed') +
+                         (_isOnline ? ' | Render ✓' : ' | Local');
     detail.style.color = '#1a6b3a';
   } catch {
     badge.className = 'srv-badge srv-err';
     badge.innerHTML = '<div class="dot"></div> Server Offline';
-    detail.textContent = '✗ Server offline — App 1 browser mode mein kaam karega. ' +
-                         'App 2 ke liye cibil_automation.py chalao.';
+    detail.textContent = _isOnline
+      ? '✗ Render server se connect nahi ho pa raha — thoda wait karo (cold start ~30s) phir Refresh karo.'
+      : '✗ Server offline — App 1 browser mode mein kaam karega. App 2 ke liye cibil_automation.py chalao.';
     detail.style.color = '#c0392b';
   }
 }
