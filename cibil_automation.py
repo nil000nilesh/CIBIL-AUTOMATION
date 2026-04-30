@@ -2292,6 +2292,57 @@ def check_browser_login():
         })
 
 
+@app.route("/scan_page_errors", methods=["GET"])
+def scan_page_errors():
+    """
+    Scan current CIBIL page for validation/field errors.
+    Returns list of error messages found on the page.
+    """
+    d = driver
+    if not d:
+        return jsonify({"errors": [], "message": "Browser not open"})
+    try:
+        errors = []
+        # Common error element selectors on CIBIL portal
+        error_selectors = [
+            "[class*='error']:not(script)",
+            "[class*='alert']:not(script)",
+            "[class*='validation']:not(script)",
+            "[class*='invalid']:not(script)",
+            "[id*='error']:not(script)",
+            "span[style*='color:red']",
+            "span[style*='color: red']",
+            "font[color='red']",
+            ".field-validation-error",
+            ".validation-summary-errors li",
+        ]
+        seen = set()
+        for sel in error_selectors:
+            try:
+                els = d.find_elements(By.CSS_SELECTOR, sel)
+                for el in els:
+                    txt = el.text.strip()
+                    if txt and len(txt) > 2 and txt.lower() not in seen:
+                        seen.add(txt.lower())
+                        errors.append(txt)
+            except Exception:
+                continue
+
+        # Also check alert text
+        try:
+            alert = d.switch_to.alert
+            txt = alert.text.strip()
+            if txt and txt.lower() not in seen:
+                errors.append(txt)
+            alert.accept()
+        except Exception:
+            pass
+
+        return jsonify({"errors": errors[:10], "page_url": d.current_url})
+    except Exception as e:
+        return jsonify({"errors": [], "message": str(e)[:120]})
+
+
 @app.route("/preload_form", methods=["GET"])
 def preload_form():
     """

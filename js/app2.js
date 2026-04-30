@@ -121,7 +121,9 @@ function renderTable() {
       <td style="font-size:11px;color:${r._status==='failed'?'#c0392b':'#1a6b3a'}">${r._message || ''}</td>
       <td>
         <button class="btn btn-teal small-btn" onclick="previewRecord(${i})">&#128065; View</button>
-        ${r._status==='failed'?`<button class="btn btn-yellow small-btn" onclick="retrySingle(${i})">&#8635; Retry</button>`:''}
+        ${r._status==='failed'
+          ? `<button class="btn btn-yellow small-btn" onclick="openEditModal(${i})">&#9998; Edit &amp; Retry</button>`
+          : ''}
         ${dlBtnHtml}
       </td>
     </tr>`;
@@ -225,6 +227,17 @@ async function startAutomation() {
         const errMsg = (result.error && result.error.trim()) || `HTTP ${resp.status} error — server window dekhen`;
         r._message = errMsg;
         addLog(`[FAIL] Record ${i+1}: ${errMsg}`, 'err');
+        // Scan page for field-level errors and show popup
+        try {
+          const er = await fetch(SERVER + '/scan_page_errors', { signal: AbortSignal.timeout(5000) });
+          const ed = await er.json();
+          if (ed.errors && ed.errors.length) {
+            r._fieldErrors = ed.errors;
+            addLog(`[ERRORS] Page errors: ${ed.errors.join(' | ')}`, 'warn');
+          }
+        } catch(e) {}
+        // Show edit modal automatically for failed record
+        setTimeout(() => openEditModal(i), 400);
       }
     } catch (err) {
       r._status = 'failed';
@@ -356,6 +369,130 @@ function exportResults() {
   a.download = 'CIBIL_Results_' + ts + '.txt';
   a.click();
   addLog('[EXPORT] Results exported: CIBIL_Results_' + ts + '.txt', 'ok');
+}
+
+// ─── EDIT & RETRY MODAL ──────────────────────
+let _editIdx = -1;
+
+const EDIT_FIELDS = [
+  { key:'first_name',   label:'First Name',    type:'text' },
+  { key:'middle_name',  label:'Middle Name',   type:'text' },
+  { key:'last_name',    label:'Last Name',     type:'text' },
+  { key:'dob',          label:'DOB (DDMMYYYY)',type:'text', maxlen:8 },
+  { key:'pan',          label:'PAN Number',    type:'text', maxlen:10 },
+  { key:'aadhaar',      label:'Aadhaar (12d)', type:'text', maxlen:12 },
+  { key:'voter_id',     label:'Voter ID',      type:'text' },
+  { key:'passport',     label:'Passport No.',  type:'text' },
+  { key:'dl_number',    label:'DL Number',     type:'text' },
+  { key:'addr1',        label:'Address Line 1',type:'text' },
+  { key:'addr2',        label:'Address Line 2',type:'text' },
+  { key:'city',         label:'City',          type:'text' },
+  { key:'pincode',      label:'Pincode',       type:'text', maxlen:6 },
+  { key:'enq_amount',   label:'Enquiry Amount',type:'number' },
+  { key:'mrn',          label:'Member Ref No.',type:'text' },
+  { key:'brn',          label:'Branch Ref No.',type:'text' },
+  { key:'crn',          label:'Center Ref No.',type:'text' },
+  { key:'email',        label:'Email',         type:'email' },
+];
+
+function openEditModal(idx) {
+  const r = records[idx];
+  if (!r) return;
+  _editIdx = idx;
+
+  // Error banner
+  const errors = r._fieldErrors || [];
+  const banner = document.getElementById('editErrorBanner');
+  if (banner) {
+    banner.innerHTML = errors.length
+      ? '&#9888; CIBIL Portal Error(s):<br>' + errors.map(e => '• ' + e).join('<br>')
+      : '&#9888; ' + (r._message || 'Form fill fail hua — fields check karo aur retry karo');
+  }
+
+  // Render editable fields
+  const container = document.getElementById('editFields');
+  if (!container) return;
+  container.innerHTML = EDIT_FIELDS.map(f => {
+    const val = r[f.key] || '';
+    const maxattr = f.maxlen ? `maxlength="${f.maxlen}"` : '';
+    return `
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <label style="font-size:11px;font-weight:700;color:#555">${f.label}</label>
+        <input data-field="${f.key}" type="${f.type}" value="${val}" ${maxattr}
+          style="padding:7px 10px;border:1.5px solid #b0c8d0;border-radius:5px;
+                 font-size:12px;outline:none;transition:border-color .2s"
+          onfocus="this.style.borderColor='#007B8A'"
+          onblur="this.style.borderColor='#b0c8d0'">
+      </div>`;
+  }).join('');
+
+  document.getElementById('editRetryMsg').textContent = '';
+  document.getElementById('editModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+  _editIdx = -1;
+}
+
+async function saveAndRetry() {
+  if (_editIdx < 0 || !records[_editIdx]) return;
+  const r   = records[_editIdx];
+  const msg = document.getElementById('editRetryMsg');
+
+  // Read edited values
+  document.querySelectorAll('#editFields [data-field]').forEach(inp => {
+    const k = inp.getAttribute('data-field');
+    r[k] = inp.value.trim() || null;
+  });
+
+  // Reset status
+  r._status      = 'pending';
+  r._message     = '';
+  r._fieldErrors = [];
+  closeEditModal();
+  renderTable();
+  updateStats();
+  addLog(`[EDIT] Record ${_editIdx+1} updated — retry shuru ho raha hai...`, 'ok');
+
+  // Retry this one record
+  const i = _editIdx;
+  r._status = 'running';
+  renderTable(); updateStats();
+
+  try {
+    const resp = await fetch(SERVER + '/fill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(r),
+      signal: AbortSignal.timeout(120000)
+    });
+    const result = resp.headers.get('content-type')?.includes('json')
+      ? await resp.json()
+      : { success: false, error: `HTTP ${resp.status}` };
+
+    if (result.success) {
+      r._status  = 'done';
+      r._message = result.message || 'Retry success';
+      addLog(`[OK] Record ${i+1} retry success!`, 'ok');
+    } else {
+      r._status  = 'failed';
+      r._message = result.error || 'Retry failed';
+      addLog(`[FAIL] Record ${i+1} retry: ${r._message}`, 'err');
+      // Scan errors again
+      try {
+        const er = await fetch(SERVER + '/scan_page_errors', { signal: AbortSignal.timeout(5000) });
+        const ed = await er.json();
+        if (ed.errors && ed.errors.length) r._fieldErrors = ed.errors;
+      } catch(e) {}
+      setTimeout(() => openEditModal(i), 400);
+    }
+  } catch(err) {
+    r._status  = 'failed';
+    r._message = err.message;
+    addLog(`[FAIL] Retry error: ${err.message}`, 'err');
+  }
+  renderTable(); updateStats();
 }
 
 // ─── LIVE BROWSER VIEWER ─────────────────────
@@ -558,7 +695,10 @@ function updateLoginBadge(status, msg) {
     reLoginBtn.style.display = 'inline-flex';
     document.getElementById('dropZone').classList.remove('upload-locked');
     lock.style.display = 'none';
-    hideBrowserViewer(); // Login complete — viewer band karo
+    hideBrowserViewer();
+    // App 3 banner dikhao — user ko live viewer open karne ka option de
+    const banner = document.getElementById('app3Banner');
+    if (banner) banner.style.display = 'flex';
     updateStartBtn();
     stopLoginPoll();
     // Note: browserPollTimer is NOT stopped — it keeps watching for session expiry
