@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIBIL Live Viewer – App 3</title>
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/app2.css">
+<style>
+  .viewer-wrap   { max-width:1200px;margin:18px auto;padding:0 16px }
+  .viewer-card   { background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,90,122,.1);overflow:hidden;margin-bottom:14px }
+  .viewer-topbar { background:linear-gradient(90deg,#003d52,#007B8A);color:#fff;padding:11px 16px;
+                   display:flex;align-items:center;gap:10px;flex-wrap:wrap }
+  .viewer-title  { font-weight:700;font-size:14px;flex:1 }
+  .viewer-btn    { background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);
+                   border-radius:5px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;
+                   transition:background .15s }
+  .viewer-btn:hover { background:rgba(255,255,255,.3) }
+  .viewer-btn.green { background:rgba(29,158,117,.7) }
+  .viewer-btn.red   { background:rgba(192,57,43,.7) }
+  #screenshotImg { width:100%;display:block;background:#1a1a2e;min-height:200px;
+                   cursor:crosshair;object-fit:contain }
+  .status-bar    { background:#f0f8fb;border-top:1px solid #d5e8ed;padding:8px 14px;
+                   font-size:11px;color:#555;display:flex;align-items:center;gap:10px }
+  .status-dot    { width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0 }
+  .status-dot.ok   { background:#1D9E75 }
+  .status-dot.err  { background:#e74c3c }
+  .status-dot.spin { background:#f39c12;animation:pulse 1s infinite }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .controls-card { background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,90,122,.1);
+                   padding:16px;margin-bottom:14px }
+  .controls-title{ font-weight:700;font-size:13px;color:#005a7a;margin-bottom:12px;
+                   display:flex;align-items:center;gap:6px }
+  .ctrl-row      { display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px }
+  .ctrl-group    { display:flex;flex-direction:column;gap:4px }
+  .ctrl-label    { font-size:11px;font-weight:700;color:#555 }
+  .ctrl-input    { padding:8px 11px;border:2px solid #b0c8d0;border-radius:6px;font-size:14px;
+                   font-weight:600;outline:none;transition:border-color .2s }
+  .ctrl-input:focus { border-color:#007B8A }
+  .ctrl-input.captcha { letter-spacing:3px;width:140px }
+  .ctrl-input.otp     { letter-spacing:4px;width:120px;text-align:center }
+  .ctrl-btn      { padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:700;
+                   cursor:pointer;white-space:nowrap;transition:opacity .15s }
+  .ctrl-btn:hover { opacity:.85 }
+  .ctrl-btn.teal   { background:linear-gradient(135deg,#007B8A,#005a7a);color:#fff }
+  .ctrl-btn.green  { background:linear-gradient(135deg,#1D9E75,#178060);color:#fff }
+  .ctrl-btn.orange { background:linear-gradient(135deg,#e67e22,#d35400);color:#fff }
+  .ctrl-btn.grey   { background:linear-gradient(135deg,#7f8c8d,#636e72);color:#fff }
+
+  .action-msg    { font-size:12px;font-weight:600;padding:5px 10px;border-radius:5px }
+  .action-msg.ok  { background:#d4efdf;color:#1a6b3a }
+  .action-msg.err { background:#fde8e8;color:#c0392b }
+
+  .log-card      { background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,90,122,.1);overflow:hidden }
+  .log-head      { background:linear-gradient(90deg,#1a1a2e,#003d52);color:#fff;
+                   padding:10px 14px;font-weight:700;font-size:12px;display:flex;align-items:center;gap:8px }
+  .log-box       { background:#0d1117;color:#c9d1d9;font-family:monospace;font-size:11px;
+                   padding:10px;height:160px;overflow-y:auto }
+  .log-ok   { color:#3fb950 } .log-err  { color:#f85149 }
+  .log-warn { color:#d29922 } .log-info { color:#58a6ff }
+
+  .info-banner   { background:linear-gradient(135deg,#e8f4fd,#d0eef5);border:1.5px solid #007B8A;
+                   border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#005a7a }
+  .info-banner strong { color:#003d52 }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo-box">
+      <span class="logo-text">TransUnion</span>
+      <span class="logo-sub">CIBIL</span>
+    </div>
+    <div>
+      <div class="brand-title">Credit Information Report Portal</div>
+      <div class="brand-sub">Live Browser Viewer — App 3</div>
+    </div>
+  </div>
+  <span id="srvBadge" class="srv-badge srv-chk"><div class="dot"></div> Checking...</span>
+</div>
+
+<!-- App Switcher Tabs -->
+<div class="app-switcher">
+  <a href="App1_CIBIL_Entry_Form.html" data-app="1">
+    &#128203; App 1 &mdash; Entry Form
+  </a>
+  <a href="App2_CIBIL_Auto_Filler.html" data-app="2">
+    &#9881; App 2 &mdash; Auto Filler
+  </a>
+  <a href="App3_CIBIL_Viewer.html" data-app="3" class="active">
+    &#128247; App 3 &mdash; CIBIL Viewer
+    <span class="app-badge">Active</span>
+  </a>
+</div>
+
+<div class="viewer-wrap">
+
+  <!-- Info Banner -->
+  <div class="info-banner">
+    &#128247; <strong>Live Browser Viewer</strong> — Render server pe chal rahe Chrome ka real-time screenshot yahan dikhta hai.
+    Form fill hote waqt <strong>errors, CAPTCHA, OTP</strong> — sab yahan dekho aur handle karo.
+    Auto-refresh har <strong>2 seconds</strong> mein hota hai.
+  </div>
+
+  <!-- Live Screenshot Card -->
+  <div class="viewer-card">
+    <div class="viewer-topbar">
+      <span class="viewer-title">&#128247; Live CIBIL Browser Window</span>
+      <span id="refreshStatus" style="font-size:11px;opacity:.75">—</span>
+      <button class="viewer-btn" onclick="takeScreenshot()">&#8635; Refresh</button>
+      <button class="viewer-btn green" id="autoBtn" onclick="toggleAuto()">&#9646;&#9646; Pause</button>
+      <button class="viewer-btn red" onclick="stopAll()">&#9632; Stop All</button>
+    </div>
+    <img id="screenshotImg" src="" alt="Loading screenshot...">
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Connecting to server...</span>
+    </div>
+  </div>
+
+  <!-- Controls Card -->
+  <div class="controls-card">
+    <div class="controls-title">&#9881; Browser Controls — CAPTCHA / OTP / Form Actions</div>
+
+    <div class="ctrl-row">
+      <!-- CAPTCHA -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">&#128274; CAPTCHA (screenshot mein dekho)</span>
+        <div style="display:flex;gap:6px">
+          <input id="captchaVal" type="text" class="ctrl-input captcha" placeholder="CAPTCHA code"
+                 onkeydown="if(event.key==='Enter')fillCaptcha()">
+          <button class="ctrl-btn teal" onclick="fillCaptcha()">Fill</button>
+        </div>
+      </div>
+
+      <!-- OTP -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">&#128241; OTP (mobile/email)</span>
+        <div style="display:flex;gap:6px">
+          <input id="otpVal" type="text" inputmode="numeric" maxlength="8"
+                 class="ctrl-input otp" placeholder="OTP"
+                 onkeydown="if(event.key==='Enter')submitOTP()">
+          <button class="ctrl-btn green" onclick="submitOTP()">Submit OTP</button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">&#9654; Page Submit</span>
+        <button class="ctrl-btn orange" onclick="clickSubmit()">Login / Submit Page</button>
+      </div>
+
+      <!-- Reload CAPTCHA -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">&#8635; CAPTCHA reload</span>
+        <button class="ctrl-btn grey" onclick="reloadCaptcha()">Reload CAPTCHA Image</button>
+      </div>
+    </div>
+
+    <div id="actionMsg" style="display:none" class="action-msg"></div>
+  </div>
+
+  <!-- Activity Log -->
+  <div class="log-card">
+    <div class="log-head">
+      &#128221; Viewer Log
+      <button onclick="clearLog()" style="margin-left:auto;background:rgba(255,255,255,.15);color:#aaa;
+              border:none;border-radius:3px;padding:3px 8px;font-size:10px;cursor:pointer">Clear</button>
+    </div>
+    <div class="log-box" id="logBox">
+      <div class="log-info">[SYSTEM] CIBIL Viewer ready — screenshot load ho raha hai...</div>
+    </div>
+  </div>
+
+</div><!-- end viewer-wrap -->
+
+<script src="js/config.js"></script>
+<script>
+// ── State ────────────────────────────────────────
+let autoTimer = null;
+let autoOn    = true;
+
+// ── Screenshot ───────────────────────────────────
+async function takeScreenshot() {
+  const img  = document.getElementById('screenshotImg');
+  const dot  = document.getElementById('statusDot');
+  const txt  = document.getElementById('statusText');
+  const rs   = document.getElementById('refreshStatus');
+  dot.className = 'status-dot spin';
+  try {
+    const r = await fetch(SERVER + '/screenshot', { signal: AbortSignal.timeout(6000) });
+    const d = await r.json();
+    if (d.status === 'ok' && d.image) {
+      img.src = 'data:image/png;base64,' + d.image;
+      dot.className = 'status-dot ok';
+      txt.textContent = 'Screenshot updated — ' + new Date().toLocaleTimeString();
+      rs.textContent  = new Date().toLocaleTimeString();
+    } else {
+      dot.className = 'status-dot err';
+      txt.textContent = d.message || 'Screenshot error';
+      addLog('Screenshot error: ' + (d.message || ''), 'err');
+    }
+    updateServerBadge(true);
+  } catch(e) {
+    dot.className = 'status-dot err';
+    txt.textContent = 'Server offline ya browser nahi khula';
+    updateServerBadge(false);
+  }
+}
+
+function startAuto() {
+  stopAuto();
+  autoOn = true;
+  document.getElementById('autoBtn').textContent = '⏸ Pause';
+  autoTimer = setInterval(takeScreenshot, 2000);
+}
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+}
+
+function toggleAuto() {
+  const btn = document.getElementById('autoBtn');
+  if (autoTimer) {
+    stopAuto(); autoOn = false;
+    btn.textContent = '▶ Resume';
+    addLog('Auto-refresh paused', 'warn');
+  } else {
+    startAuto();
+    addLog('Auto-refresh resumed (2s)', 'info');
+  }
+}
+
+function stopAll() {
+  stopAuto(); autoOn = false;
+  document.getElementById('autoBtn').textContent = '▶ Resume';
+  addLog('All polling stopped', 'warn');
+}
+
+// ── Server Badge ─────────────────────────────────
+function updateServerBadge(online) {
+  const b = document.getElementById('srvBadge');
+  if (!b) return;
+  b.className = 'srv-badge ' + (online ? 'srv-ok' : 'srv-err');
+  b.innerHTML = '<div class="dot"></div> Server ' + (online ? 'Online' : 'Offline');
+}
+
+// ── CAPTCHA Fill ─────────────────────────────────
+async function fillCaptcha() {
+  const val = document.getElementById('captchaVal').value.trim();
+  if (!val) { showMsg('CAPTCHA khali hai', false); return; }
+  showMsg('CAPTCHA fill ho raha hai...', null);
+  try {
+    const r = await fetch(SERVER + '/fill_captcha', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ captcha: val }), signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    showMsg(d.message, d.status === 'ok');
+    addLog('CAPTCHA fill: ' + d.message, d.status === 'ok' ? 'ok' : 'err');
+    setTimeout(takeScreenshot, 800);
+  } catch(e) { showMsg('Error: ' + e.message, false); }
+}
+
+// ── Reload CAPTCHA ───────────────────────────────
+async function reloadCaptcha() {
+  showMsg('CAPTCHA reload ho raha hai...', null);
+  try {
+    // Try clicking a "refresh captcha" image/link on the page
+    const r = await fetch(SERVER + '/reload_captcha', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: '{}', signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    showMsg(d.message, d.status === 'ok');
+    addLog('CAPTCHA reload: ' + d.message, d.status === 'ok' ? 'ok' : 'err');
+    setTimeout(takeScreenshot, 1200);
+  } catch(e) { showMsg('Error: ' + e.message, false); }
+}
+
+// ── OTP Submit ───────────────────────────────────
+async function submitOTP() {
+  const otp = document.getElementById('otpVal').value.trim();
+  if (!otp || !/^\d+$/.test(otp)) { showMsg('Valid numeric OTP daalo', false); return; }
+  showMsg('OTP submit ho raha hai...', null);
+  try {
+    const r = await fetch(SERVER + '/submit_otp', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ otp }), signal: AbortSignal.timeout(10000)
+    });
+    const d = await r.json();
+    showMsg(d.message, d.status === 'ok');
+    addLog('OTP: ' + d.message, d.status === 'ok' ? 'ok' : 'err');
+    setTimeout(takeScreenshot, 1500);
+  } catch(e) { showMsg('Error: ' + e.message, false); }
+}
+
+// ── Click Submit ─────────────────────────────────
+async function clickSubmit() {
+  showMsg('Submit click ho raha hai...', null);
+  try {
+    const r = await fetch(SERVER + '/click_login_submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: '{}', signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    showMsg(d.message, d.status === 'ok');
+    addLog('Submit: ' + d.message, d.status === 'ok' ? 'ok' : 'err');
+    setTimeout(takeScreenshot, 1500);
+  } catch(e) { showMsg('Error: ' + e.message, false); }
+}
+
+// ── UI Helpers ───────────────────────────────────
+function showMsg(text, ok) {
+  const el = document.getElementById('actionMsg');
+  el.style.display = 'block';
+  el.className = 'action-msg ' + (ok === true ? 'ok' : ok === false ? 'err' : '');
+  el.textContent = text;
+  if (ok !== null) setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+function addLog(msg, type) {
+  const box = document.getElementById('logBox');
+  const div = document.createElement('div');
+  div.className = 'log-' + (type || 'info');
+  div.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function clearLog() {
+  document.getElementById('logBox').innerHTML =
+    '<div class="log-info">[SYSTEM] Log cleared.</div>';
+}
+
+// ── Init ─────────────────────────────────────────
+takeScreenshot();
+startAuto();
+</script>
+</body>
+</html>

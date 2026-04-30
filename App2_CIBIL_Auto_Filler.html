@@ -31,6 +31,9 @@
     &#9881; App 2 &mdash; Auto Filler
     <span class="app-badge">Active</span>
   </a>
+  <a href="App3_CIBIL_Viewer.html" data-app="3">
+    &#128247; App 3 &mdash; CIBIL Viewer
+  </a>
 </div>
 
 <div class="navbar">
@@ -415,6 +418,62 @@
       <span class="modal-close" onclick="closeModal()">✕</span>
     </div>
     <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Edit & Retry Modal -->
+<div class="modal-overlay" id="editModal" onclick="if(event.target===this)closeEditModal()"
+     style="display:none">
+  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h3 style="color:#c0392b">&#9888; Record Error — Edit &amp; Retry</h3>
+      <span class="modal-close" onclick="closeEditModal()">✕</span>
+    </div>
+    <div id="editErrorBanner" style="background:#fde8e8;border:1.5px solid #e74c3c;border-radius:6px;
+         padding:10px 14px;margin-bottom:12px;font-size:12px;color:#c0392b;font-weight:600"></div>
+    <div style="font-size:11px;color:#555;margin-bottom:12px">
+      &#9998; Fields edit karo phir <strong>Save &amp; Retry</strong> dabao — system dobara submit karega.
+    </div>
+    <div id="editFields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <button onclick="saveAndRetry()"
+              style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                     border-radius:6px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer">
+        &#10003; Save &amp; Retry
+      </button>
+      <button onclick="closeEditModal()"
+              style="background:linear-gradient(135deg,#888,#666);color:#fff;border:none;
+                     border-radius:6px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer">
+        Cancel
+      </button>
+      <span id="editRetryMsg" style="font-size:12px;color:#555;align-self:center"></span>
+    </div>
+  </div>
+</div>
+
+<!-- App 3 Viewer Banner (shown after login) -->
+<div id="app3Banner" style="display:none;align-items:center;gap:12px;position:fixed;
+     bottom:18px;right:18px;z-index:999;background:linear-gradient(135deg,#003d52,#007B8A);
+     color:#fff;border-radius:10px;padding:14px 18px;box-shadow:0 4px 20px rgba(0,0,0,.35);
+     max-width:320px">
+  <span style="font-size:24px">&#128247;</span>
+  <div style="flex:1">
+    <div style="font-weight:700;font-size:13px">CIBIL Logged In!</div>
+    <div style="font-size:11px;opacity:.85;margin-top:2px">
+      App 3 mein live form fill dekho — errors instantly dikhenge
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <a id="app3BannerLink" href="App3_CIBIL_Viewer.html" data-app="3" target="_blank"
+       style="background:#1D9E75;color:#fff;border:none;border-radius:5px;padding:6px 12px;
+              font-size:12px;font-weight:700;text-decoration:none;text-align:center">
+      &#128247; Open Viewer
+    </a>
+    <button onclick="document.getElementById('app3Banner').style.display='none'"
+            style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:5px;
+                   padding:4px 8px;font-size:11px;cursor:pointer">
+      Dismiss
+    </button>
   </div>
 </div>
 

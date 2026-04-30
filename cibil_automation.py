@@ -165,6 +165,11 @@ def serve_app1():
 def serve_app2():
     return send_from_directory(BASE_DIR, "App2_CIBIL_Auto_Filler.html")
 
+@app.route("/app3")
+@app.route("/App3_CIBIL_Viewer.html")
+def serve_app3():
+    return send_from_directory(BASE_DIR, "App3_CIBIL_Viewer.html")
+
 @app.route("/index.html")
 @app.route("/home")
 def serve_home():
@@ -2059,6 +2064,36 @@ def fill_captcha():
         return jsonify({"status": "error", "message": str(e)[:120]})
 
 
+@app.route("/reload_captcha", methods=["POST"])
+def reload_captcha():
+    """Click the CAPTCHA refresh/reload image on the page."""
+    d = driver
+    if not d:
+        return jsonify({"status": "error", "message": "Browser open nahi hai"})
+    try:
+        reload_selectors = [
+            (By.CSS_SELECTOR, "img[onclick*='captcha' i]"),
+            (By.CSS_SELECTOR, "img[src*='captcha' i]"),
+            (By.CSS_SELECTOR, "a[onclick*='captcha' i]"),
+            (By.CSS_SELECTOR, "span[onclick*='captcha' i]"),
+            (By.CSS_SELECTOR, "[id*='refresh' i]"),
+            (By.CSS_SELECTOR, "[id*='reload' i]"),
+            (By.CSS_SELECTOR, "[onclick*='refresh' i]"),
+        ]
+        for by, sel in reload_selectors:
+            try:
+                el = d.find_element(by, sel)
+                if el.is_displayed():
+                    el.click()
+                    log.info(f"[CAPTCHA] Reload clicked: {sel}")
+                    return jsonify({"status": "ok", "message": "CAPTCHA refresh ho gaya — screenshot dekho"})
+            except Exception:
+                continue
+        return jsonify({"status": "error", "message": "CAPTCHA refresh button nahi mila"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)[:120]})
+
+
 @app.route("/click_login_submit", methods=["POST"])
 def click_login_submit():
     """Click the login/submit button on current page."""
@@ -2255,6 +2290,57 @@ def check_browser_login():
             "browser_url": "",
             "error":       str(ex),
         })
+
+
+@app.route("/scan_page_errors", methods=["GET"])
+def scan_page_errors():
+    """
+    Scan current CIBIL page for validation/field errors.
+    Returns list of error messages found on the page.
+    """
+    d = driver
+    if not d:
+        return jsonify({"errors": [], "message": "Browser not open"})
+    try:
+        errors = []
+        # Common error element selectors on CIBIL portal
+        error_selectors = [
+            "[class*='error']:not(script)",
+            "[class*='alert']:not(script)",
+            "[class*='validation']:not(script)",
+            "[class*='invalid']:not(script)",
+            "[id*='error']:not(script)",
+            "span[style*='color:red']",
+            "span[style*='color: red']",
+            "font[color='red']",
+            ".field-validation-error",
+            ".validation-summary-errors li",
+        ]
+        seen = set()
+        for sel in error_selectors:
+            try:
+                els = d.find_elements(By.CSS_SELECTOR, sel)
+                for el in els:
+                    txt = el.text.strip()
+                    if txt and len(txt) > 2 and txt.lower() not in seen:
+                        seen.add(txt.lower())
+                        errors.append(txt)
+            except Exception:
+                continue
+
+        # Also check alert text
+        try:
+            alert = d.switch_to.alert
+            txt = alert.text.strip()
+            if txt and txt.lower() not in seen:
+                errors.append(txt)
+            alert.accept()
+        except Exception:
+            pass
+
+        return jsonify({"errors": errors[:10], "page_url": d.current_url})
+    except Exception as e:
+        return jsonify({"errors": [], "message": str(e)[:120]})
 
 
 @app.route("/preload_form", methods=["GET"])
