@@ -20,10 +20,12 @@ const SERVER = localStorage.getItem('cibil_server_url') || _defaultServer();
 (function _setAppLinks() {
   const h = location.hostname;
   const onRender = h.endsWith('.onrender.com');
-  const app1Url  = onRender ? '/app1' : 'App1_CIBIL_Entry_Form.html';
-  const app2Url  = onRender ? '/app2' : 'App2_CIBIL_Auto_Filler.html';
+  const app1Url  = onRender ? '/app1'  : 'App1_CIBIL_Entry_Form.html';
+  const app2Url  = onRender ? '/app2'  : 'App2_CIBIL_Auto_Filler.html';
+  const app3Url  = onRender ? '/app3'  : 'App3_CIBIL_Viewer.html';
   document.querySelectorAll('[data-app="1"]').forEach(el => el.href = app1Url);
   document.querySelectorAll('[data-app="2"]').forEach(el => el.href = app2Url);
+  document.querySelectorAll('[data-app="3"]').forEach(el => el.href = app3Url);
 })();
 
 // localStorage key names used across both apps
