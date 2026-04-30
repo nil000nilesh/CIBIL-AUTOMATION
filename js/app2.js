@@ -358,6 +358,147 @@ function exportResults() {
   addLog('[EXPORT] Results exported: CIBIL_Results_' + ts + '.txt', 'ok');
 }
 
+// ─── LIVE BROWSER VIEWER ─────────────────────
+let _screenshotTimer  = null;
+let _autoRefreshOn    = true;
+
+function showBrowserViewer() {
+  const v = document.getElementById('browserViewer');
+  if (v) { v.style.display = 'block'; v.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  refreshScreenshot();
+  startAutoRefresh();
+}
+
+function hideBrowserViewer() {
+  stopAutoRefresh();
+  const v = document.getElementById('browserViewer');
+  if (v) v.style.display = 'none';
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  _autoRefreshOn = true;
+  const btn = document.getElementById('autoRefreshBtn');
+  if (btn) btn.textContent = '⏸ Pause';
+  _screenshotTimer = setInterval(refreshScreenshot, 2500);
+}
+
+function stopAutoRefresh() {
+  if (_screenshotTimer) { clearInterval(_screenshotTimer); _screenshotTimer = null; }
+}
+
+function toggleAutoRefresh() {
+  const btn = document.getElementById('autoRefreshBtn');
+  if (_screenshotTimer) {
+    stopAutoRefresh(); _autoRefreshOn = false;
+    if (btn) btn.textContent = '▶ Resume';
+  } else {
+    startAutoRefresh();
+  }
+}
+
+async function refreshScreenshot() {
+  const img    = document.getElementById('browserScreenshot');
+  const status = document.getElementById('viewerStatus');
+  if (!img) return;
+  try {
+    const r = await fetch(SERVER + '/screenshot', { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    if (d.status === 'ok' && d.image) {
+      img.src = 'data:image/png;base64,' + d.image;
+      if (status) status.textContent = 'Updated: ' + new Date().toLocaleTimeString();
+    } else {
+      if (status) status.textContent = d.message || 'Screenshot error';
+    }
+  } catch(e) {
+    if (status) status.textContent = 'Server unreachable';
+  }
+}
+
+async function submitCaptcha() {
+  const inp = document.getElementById('captchaInput');
+  const msg = document.getElementById('viewerActionMsg');
+  const val = inp ? inp.value.trim() : '';
+  if (!val) { if (msg) { msg.style.color='#c0392b'; msg.textContent='CAPTCHA khali hai'; } return; }
+  if (msg) { msg.style.color='#555'; msg.textContent='Filling...'; }
+  try {
+    const r = await fetch(SERVER + '/fill_captcha', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ captcha: val }), signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    if (d.status === 'ok') { addLog('[CAPTCHA] Fill ho gaya: ' + val, 'ok'); refreshScreenshot(); }
+    else addLog('[CAPTCHA] Error: ' + d.message, 'err');
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
+async function clickLoginSubmit() {
+  const msg = document.getElementById('viewerActionMsg');
+  if (msg) { msg.style.color='#555'; msg.textContent='Submitting...'; }
+  try {
+    const r = await fetch(SERVER + '/click_login_submit', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: '{}', signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    addLog('[LOGIN] Submit click: ' + d.message, d.status==='ok'?'ok':'err');
+    setTimeout(refreshScreenshot, 1500);
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
+async function submitOTPFromViewer() {
+  const inp = document.getElementById('otpInputViewer');
+  const msg = document.getElementById('viewerActionMsg');
+  const otp = inp ? inp.value.trim() : '';
+  if (!otp) { if (msg) { msg.style.color='#c0392b'; msg.textContent='OTP khali hai'; } return; }
+  if (msg) { msg.style.color='#555'; msg.textContent='OTP submit ho raha hai...'; }
+  try {
+    const r = await fetch(SERVER + '/submit_otp', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ otp }), signal: AbortSignal.timeout(10000)
+    });
+    const d = await r.json();
+    if (msg) { msg.style.color = d.status==='ok'?'#1a6b3a':'#c0392b'; msg.textContent = d.message; }
+    if (d.status === 'ok') { addLog('[OTP] Submit ho gaya', 'ok'); startLoginPoll(); }
+    else addLog('[OTP] Error: ' + d.message, 'err');
+  } catch(e) { if (msg) { msg.style.color='#c0392b'; msg.textContent='Error: '+e.message; } }
+}
+
+// ─── OTP SUBMIT ──────────────────────────────
+async function submitOTP() {
+  const inp = document.getElementById('otpInput');
+  const msg = document.getElementById('otpMsg');
+  if (!inp) return;
+  const otp = inp.value.trim();
+  if (!otp || !/^\d+$/.test(otp)) {
+    if (msg) { msg.style.color = '#c0392b'; msg.textContent = 'Sirf digits daalo'; }
+    return;
+  }
+  if (msg) { msg.style.color = '#555'; msg.textContent = 'Submit ho raha hai...'; }
+  try {
+    const r = await fetch(SERVER + '/submit_otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otp }),
+      signal: AbortSignal.timeout(10000)
+    });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      if (msg) { msg.style.color = '#1a6b3a'; msg.textContent = '✓ ' + d.message; }
+      addLog('[OTP] OTP submit ho gaya — login verify ho raha hai...', 'ok');
+      startLoginPoll();
+    } else {
+      if (msg) { msg.style.color = '#c0392b'; msg.textContent = '✗ ' + (d.message || 'Error'); }
+      addLog('[OTP] Submit fail: ' + (d.message || 'Error'), 'err');
+    }
+  } catch(e) {
+    if (msg) { msg.style.color = '#c0392b'; msg.textContent = 'Server error: ' + e.message; }
+    addLog('[OTP] Server error: ' + e.message, 'err');
+  }
+}
+
 // ─── LOAD FROM APP1 QUEUE (localStorage) ─────
 function loadFromApp1Queue() {
   try {
@@ -414,9 +555,10 @@ function updateLoginBadge(status, msg) {
     cibilLoggedIn = true;
     loginBtn.disabled = true;
     loginBtn.textContent = '✓ Logged In';
-    reLoginBtn.style.display = 'inline-flex';   // ← show Re-Login
+    reLoginBtn.style.display = 'inline-flex';
     document.getElementById('dropZone').classList.remove('upload-locked');
     lock.style.display = 'none';
+    hideBrowserViewer(); // Login complete — viewer band karo
     updateStartBtn();
     stopLoginPoll();
     // Note: browserPollTimer is NOT stopped — it keeps watching for session expiry
@@ -426,10 +568,25 @@ function updateLoginBadge(status, msg) {
   } else if (status === 'waiting_otp') {
     badge.classList.add('ls-waiting');
     text.textContent = 'Waiting for OTP...';
+    showBrowserViewer(); // CAPTCHA + OTP dono browser viewer mein handle honge
     note.style.display = 'block';
-    note.innerHTML = '<strong>Chrome window mein OTP enter karein manually.</strong>';
+    note.innerHTML = `
+      <strong>&#128241; OTP aaya hoga aapke registered mobile/email pe — neeche daalo:</strong>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <input id="otpInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+          placeholder="OTP enter karo"
+          style="padding:8px 12px;border:2px solid #007B8A;border-radius:6px;font-size:16px;
+                 font-weight:700;letter-spacing:4px;width:160px;text-align:center;outline:none">
+        <button onclick="submitOTP()"
+          style="background:linear-gradient(135deg,#1D9E75,#178060);color:#fff;border:none;
+                 border-radius:6px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer">
+          &#10003; Submit OTP
+        </button>
+        <span id="otpMsg" style="font-size:12px;color:#555"></span>
+      </div>`;
     lock.style.display = 'block';
     reLoginBtn.style.display = 'none';
+    setTimeout(() => { const el = document.getElementById('otpInput'); if (el) el.focus(); }, 100);
 
   } else if (status === 'logging_in') {
     badge.classList.add('ls-logging');
@@ -438,6 +595,8 @@ function updateLoginBadge(status, msg) {
     note.textContent = msg || 'Chrome window khul raha hai...';
     lock.style.display = 'block';
     reLoginBtn.style.display = 'none';
+    // Show live browser viewer after short delay (Chrome takes a moment to open)
+    setTimeout(showBrowserViewer, 3000);
 
   } else if (status === 'error' || status === 'failed') {
     badge.classList.add('ls-error');
@@ -654,6 +813,7 @@ function togglePassVis() {
 }
 
 // When user starts typing in password field, clear saved flag
+// Also handle Enter key on dynamically created OTP input
 document.addEventListener('DOMContentLoaded', () => {
   const passEl = document.getElementById('cibildPass');
   passEl.addEventListener('input', function() {
@@ -661,6 +821,11 @@ document.addEventListener('DOMContentLoaded', () => {
       this.removeAttribute('data-saved');
       this.placeholder = 'Your CIBIL password';
     }
+  });
+
+  // OTP Enter key — delegated (otpInput is created dynamically)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'otpInput') submitOTP();
   });
 });
 
